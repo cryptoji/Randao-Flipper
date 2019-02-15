@@ -19,6 +19,8 @@ class App extends Component {
       // State
       gameSessions: [],
       numberOfSessions: 0,
+      numberOfWinners: 0,
+      totalWinsFund: 0,
 
       // Constants
       web3: null,
@@ -43,10 +45,26 @@ class App extends Component {
         deployedNetwork && deployedNetwork.address
       );
 
+      contract.events.SessionCreated({}, (error, event) => console.log(event))
+        .on('data', (event) => {
+          console.log(event);
+        })
+        .on('changed', (event) => {
+          console.log(event);
+        })
+        .on('error', console.error)
+
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract });
-      this.loadSessions();
+      this.setState({
+        web3,
+        accounts,
+        contract
+      });
+
+      // Initial load of data
+      await this.loadStatistics();
+      await this.loadSessions();
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -60,20 +78,19 @@ class App extends Component {
   // Form handlers
   handleInputChange = (event) => {
     const { value, name, type } = event.target;
-
     this.setState(prevState => {
       return {
         createSessionForm: {
           ...prevState.createSessionForm,
-          [name]: type === 'number' ? parseInt(value) : value
+          [name]: type === 'number' ? parseFloat(value) : value
         }
       };
-    }, () => console.log(this.state.createSessionForm));
+    });
   }
 
   // --------------------------
   // Utils
-  canJoinToSession = ({ creator, participants }) => {
+  canJoinSession = ({ creator, participants }) => {
     const account = this.state.accounts[0];
     if(participants.findIndex(address => address === account) >= 0) {
       return false;
@@ -81,34 +98,102 @@ class App extends Component {
     return account !== creator;
   }
 
-  // -------------------------
-  // Async block chain methods
-  loadSessions = async() => {
-    const { contract } = this.state;
-    const numberOfSessions = await contract.methods.numberOfGameSessions().call();
-    const gameSessions = [];
-
-    for(let i = 0; i < numberOfSessions; i++) {
-      const session = await contract.methods.getSession(i).call();
-      gameSessions.push(session);
-    }
-
-    this.setState({
-      gameSessions,
-      numberOfSessions
-    });
+  isSessionOwner = (creator) => {
+    const account = this.state.accounts[0];
+    return account === creator;
   }
 
-  joinToSession = async(event, sessionID) => {
-    event.preventDefault();
+  // -------------------------
+  // Async block chain methods
+  loadStatistics = async() => {
+    const { contract } = this.state;
+    try {
+      const numberOfActiveSessions = await contract.methods.numberOfActiveSessions().call();
+      const numberOfSessions = await contract.methods.numberOfSessions().call();
+      const numberOfWinners = await contract.methods.numberOfWinners().call();
+      const totalWinsFund = await contract.methods.totalWinsFund().call();
 
+      this.setState({
+        numberOfActiveSessions,
+        numberOfSessions,
+        numberOfWinners,
+        totalWinsFund
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  loadSessions = async() => {
+    const { contract, numberOfSessions } = this.state;
+    const gameSessions = [];
+
+    if(numberOfSessions <= 0) {
+      return;
+    }
+
+    for(let i = 0; i < numberOfSessions; i++) {
+      try {
+        const session = await contract.methods.getSession(i).call();
+        gameSessions.push(session);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    this.setState({ gameSessions: gameSessions.reverse() });
+  }
+
+  joinSession = async(event, sessionID) => {
     const { accounts, contract } = this.state;
-    await contract.methods.joinSession(sessionID).send({
-      from: accounts[0],
-      value: this.state.gameSessions[sessionID].betAmount
-    });
+    const value = this.state.gameSessions
+      .find(session => session.index === sessionID)
+      .betAmount;
 
-    this.loadSessions();
+    try {
+      await contract.methods
+        .joinSession(sessionID)
+        .send({
+          from: accounts[0],
+          value
+        });
+
+      await this.loadSessions();
+      await this.loadStatistics();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  removeSession = async(event, sessionID) => {
+    const { contract, accounts } = this.state;
+
+    const isConfirmedAction = window.confirm("Are you sure want to remove a game session?");
+
+    if(isConfirmedAction) {
+      try {
+        await contract.methods
+          .removeSession(sessionID)
+          .send({ from: accounts[0] });
+
+        this.setState(prevState => {
+          return {
+            gameSessions: prevState.gameSessions.reduce((memo, session) => {
+                if(session.index === sessionID) {
+                  memo.push(Object.assign(session, { isClosed: true }));
+                } else {
+                  memo.push(session);
+                }
+                return memo;
+              }, [])
+          };
+        });
+
+        await this.loadStatistics();
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 
   createGameSession = async(event) => {
@@ -116,35 +201,50 @@ class App extends Component {
 
     const { web3, accounts, contract, createSessionForm } = this.state;
 
-    // Stores a given value, 5 by default.
-    await contract.methods.createSession(
-      web3.utils.toHex(createSessionForm.betAmount*10**18),
-      createSessionForm.percentOfWinners,
-      createSessionForm.numberOfParticipants
-    ).send({
-      from: accounts[0],
-      value: createSessionForm.betAmount*10**18
-    });
+    try {
+      // Stores a given value, 5 by default.
+      await contract.methods
+        .createSession(
+          web3.utils.toHex(createSessionForm.betAmount*10**18),
+          createSessionForm.percentOfWinners,
+          createSessionForm.numberOfParticipants
+        )
+        .send({
+          from: accounts[0],
+          value: createSessionForm.betAmount*10**18
+        });
 
-    const createdSession = await contract.methods.getSession(this.state.numberOfSessions).call();
-    this.setState(prevState => {
-      return {
-        gameSessions: [...prevState.gameSessions, createdSession]
-      };
-    });
+      const createdSession = await contract.methods
+        .getSession(this.state.numberOfSessions)
+        .call();
+
+      this.setState(prevState => {
+        const updatedSessions = [...prevState.gameSessions.reverse(), createdSession];
+        return {
+          gameSessions: updatedSessions.reverse()
+        };
+      });
+
+      await this.loadStatistics();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   render() {
     if (!this.state.web3) {
-      return <div>Loading Web3, accounts, and contract...</div>;
+      return (
+        <div className="App">Loading Tokens Flipper...</div>
+      );
     }
     return (
       <div className="App">
         <h1>Tokens Flipper</h1>
         <ul>
-          <li>Wins fund: 1023.3356 ETH</li>
+          <li>Wins fund: {this.state.totalWinsFund} ETH</li>
+          <li>Number of active sessions: {this.state.numberOfActiveSessions}</li>
           <li>Number of sessions: {this.state.numberOfSessions}</li>
-          <li>Number of winners: {this.state.numberOfSessions}</li>
+          <li>Number of winners: {this.state.numberOfWinners}</li>
         </ul>
         <section>
           <h3>Create new session</h3>
@@ -183,10 +283,11 @@ class App extends Component {
         </section>
         <section>
           <h3>Sessions list</h3>
-          {this.state.gameSessions.map((session, index) => {
+          {this.state.gameSessions.map((session) => {
             const { web3 } = this.state;
             return (
-              <div key={index}>
+              <div key={session.index}>
+                <h2>#{session.index}</h2>
                 <div>
                   <strong>Bet amount:</strong>
                   {web3.utils.fromWei(session.betAmount)} ETH
@@ -200,22 +301,53 @@ class App extends Component {
                   {session.percentOfWinners}%
                 </div>
                 <div>
-                  <strong>Creator:</strong>
-                  {session.creator}
-                </div>
-                <div>
                   <h4>Participants</h4>
                   {session.participants.map((participant, index) => {
                     return (<li key={index}>{participant}</li>);
                   })}
                 </div>
+                <div>
+                  <h5>Creator: {session.creator}</h5>
+                </div>
                 {
-                  this.canJoinToSession(session) ?
-                    <button
-                      onClick={(event) => this.joinToSession(event, index)}>
-                      Join to session
-                    </button> :
-                    <p><i>You are joined to this session</i></p>
+                  (session.isClosed || session.isCompleted) ?
+                    (
+                      <div>
+                        <p>
+                          {session.isClosed ? <strong style={{'color': 'red'}}>This session is closed by creator</strong> : ''}
+                          {session.isCompleted ? <strong style={{'color': 'green'}}>This session is completed</strong> : ''}
+                        </p>
+                        {
+                          session.isCompleted ?
+                            <div>
+                              <h4>Winners</h4>
+                              {session.winners.map((winner, index) => {
+                                return (<li key={index}>{winner}</li>);
+                              })}
+                            </div>: ''
+                        }
+                      </div>
+                    ):
+                    (
+                      <div>
+                        {
+                          this.canJoinSession(session) ?
+                            <button
+                              onClick={(event) => this.joinSession(event, session.index)}>
+                              Join to session
+                            </button> :
+                            <p><i>You are joined to this session</i></p>
+                        }
+                        {
+                          this.isSessionOwner(session.creator) ?
+                            <button
+                              onClick={(event) => this.removeSession(event, session.index)}>
+                              Remove
+                            </button> :
+                            ''
+                        }
+                      </div>
+                    )
                 }
                 <hr/>
               </div>

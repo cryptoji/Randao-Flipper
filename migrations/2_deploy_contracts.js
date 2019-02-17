@@ -1,5 +1,5 @@
-var TokensFlipper = artifacts.require("./TokensFlipper.sol");
+var EtherFlipper = artifacts.require("./EtherFlipper.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(TokensFlipper);
+  deployer.deploy(EtherFlipper);
 };

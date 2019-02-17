@@ -8,6 +8,14 @@ contract EtherFlipper is Ownable {
   struct GameConfiguration {
     uint participantsNumber;
     uint winnersNumber;
+
+    // % который теряют проигравшие
+
+    // After this block users will receive
+    // rewards if anybody address will a winner.
+    // Deposits of participants who did not
+    // reveal, will be divided between winners addresses
+    uint duration;
   }
 
   // Participant structure
@@ -32,6 +40,8 @@ contract EtherFlipper is Ownable {
 
     uint commitCounter;
     uint revealCounter;
+
+    uint deadline;
 
     // Statuses of session
     bool completed;
@@ -85,6 +95,7 @@ contract EtherFlipper is Ownable {
       uint random,
       uint commitCounter,
       uint revealCounter,
+      uint deadline,
       bool completed,
       bool closed,
       address[] memory participants,
@@ -100,6 +111,7 @@ contract EtherFlipper is Ownable {
       game.random,
       game.commitCounter,
       game.revealCounter,
+      game.deadline,
       game.completed,
       game.closed,
       game.participants,
@@ -118,6 +130,8 @@ contract EtherFlipper is Ownable {
 
     // Create game
     GameSession storage game = GameSessions[gameId];
+    GameConfiguration memory configuration = GameConfigurations[configId];
+
     game.id = gameId;
     game.configId = configId;
     game.deposit = msg.value;
@@ -129,6 +143,7 @@ contract EtherFlipper is Ownable {
     game.participants = new address[](0);
     game.winners = new address[](0);
     game.random = 0;
+    game.deadline = block.number + configuration.duration;
 
     // Owner will first participant
     game.participants.push(msg.sender);
@@ -143,13 +158,15 @@ contract EtherFlipper is Ownable {
 
   function createConfiguration(
     uint _participantsNumber,
-    uint _winnersNumber
+    uint _winnersNumber,
+    uint _duration
   ) onlyOwner external {
     uint configurationId = GameConfigurations.length++;
     GameConfiguration storage configuration = GameConfigurations[configurationId];
 
     configuration.participantsNumber = _participantsNumber;
     configuration.winnersNumber = _winnersNumber;
+    configuration.duration = _duration;
 
     ConfigurationsCounter++;
     emit GameConfigurationCreated(configurationId);
@@ -163,6 +180,7 @@ contract EtherFlipper is Ownable {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
 
+    require(game.deadline > block.number, "This game was deadlined");
     require(msg.value == game.deposit, "msg.value should equal to game deposit");
     require(game.commitCounter < config.participantsNumber, "All participants are joined");
     require(!game._participants[msg.sender].commited, "You are commited");
@@ -174,7 +192,6 @@ contract EtherFlipper is Ownable {
     emit NumberCommited(gameId, msg.sender);
   }
 
-  event GameCompleted(uint gameId, address[] winners);
   event NumberRevealed(uint gameId);
 
   function revealNumber(uint gameId, uint number) external {
@@ -182,8 +199,9 @@ contract EtherFlipper is Ownable {
     GameConfiguration memory config = GameConfigurations[game.configId];
     bytes32 secret = game._participants[msg.sender].secret;
 
+    require(game.deadline > block.number, "This game was deadlined");
     require(game.commitCounter == config.participantsNumber, "Not all participants are joined");
-    require(game.revealCounter < config.participantsNumber, "All numbers are confirmed");
+    require(game.revealCounter < config.participantsNumber, "All numbers are revealed");
     require(secret == encode(number, msg.sender), "Not valid number");
     require(!game._participants[msg.sender].revealed, "You are revealed your number");
 
@@ -192,18 +210,59 @@ contract EtherFlipper is Ownable {
     game._participants[msg.sender].revealed = true;
 
     emit NumberRevealed(gameId);
+  }
 
-    if(game.revealCounter == config.participantsNumber) {
-      game.random = game.random % config.participantsNumber;
+  // --------------------------
+  // Complete game method
+  // calculates winners by
+  // common random number
+  event GameCompleted(uint gameId, address[] winners);
 
-      for(uint i = 0; i < config.winnersNumber; i++) {
-        address winner = game.participants[game.random + i];
-        game.winners.push(winner);
-      }
+  function completeGame(uint gameId) external {
+    GameSession storage game = GameSessions[gameId];
+    GameConfiguration memory config = GameConfigurations[game.configId];
 
-      game.completed = true;
-      emit GameCompleted(gameId, game.winners);
+    require(game.revealCounter > 0, "Nobody didn't reveal number, is impossible to select winners");
+    require(
+      game.revealCounter == config.participantsNumber || game.deadline < block.number,
+      "Not all participants revealed and the game deadline is not now"
+    );
+
+    // bytes32 hash = blockhash(block.number - 1);
+    // uint salt = uint(hash);
+    uint random = game.random % config.participantsNumber;
+    bool condition = (random + config.winnersNumber) > game.participants.length;
+
+    while(condition) { random--; }
+
+    game.completed = true;
+
+    for(uint i = 0; i < config.winnersNumber; i++) {
+      address winner = game.participants[random + i];
+      game.winners.push(winner);
     }
+
+    emit GameCompleted(gameId, game.winners);
+  }
+
+  // -----------------------------
+  // Close the failed game and makes
+  // receive deposits to back are possible
+  event GameClosed(uint gameId);
+
+  function closeGame(uint gameId) external {
+    GameSession storage game = GameSessions[gameId];
+
+    require(game.closed, "This game already is closed");
+    require(game._participants[msg.sender].commited, "You are not game participant");
+    require(
+      game.deadline < block.number && game.revealCounter == 0,
+      "Not all participants revealed and the game deadline is not now"
+    );
+
+    game.closed = true;
+
+    emit GameClosed(gameId);
   }
 
   function sendReward(uint gameId) external {

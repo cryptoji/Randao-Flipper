@@ -96,7 +96,7 @@ contract TokensFlipper {
 //    uint personFund = totalFund / numberOfWinners;
 
     for(uint i = 0; i < 10; i++) {
-      emit TestE(random(session.numberOfParticipants));
+      // emit TestE(random(session.numberOfParticipants));
 //      session.participantsList[randomNumber].transfer(personFund);
 //      session.winnersList.push(session.participantsList[0]);
     }
@@ -150,9 +150,5 @@ contract TokensFlipper {
       session.isCompleted,
       session.isClosed
     );
-  }
-
-  function random(uint max) view internal returns (uint) {
-    return uint(keccak256(abi.encodePacked(now, msg.sender))) % max;
   }
 }

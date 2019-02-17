@@ -60,7 +60,7 @@ class Flipper extends Component {
 
       this.setState({ web3, accounts, contract });
 
-      const data = await contract.methods.encode(1, '0x08469152a0C585247F1bBCEAcaee710549AdBB37').call();
+      const data = await contract.methods.encode(1, accounts[0]).call();
       console.log(data);
 
       // Initial data
@@ -180,7 +180,7 @@ class Flipper extends Component {
     const { web3, accounts, contract } = this.state;
     const { configId, secret, deposit } = this.state.createGameForm;
 
-    const hashedSecret = await contract.methods.encodeString(secret).call();
+    const hashedSecret = await contract.methods.encode(secret, accounts[0]).call();
 
     await contract.methods
       .createGame(configId, hashedSecret)
@@ -192,15 +192,15 @@ class Flipper extends Component {
     this.loadGames();
   }
 
-  joinGame = async(e, game) => {
+  commitNumber = async(e, game) => {
     e.preventDefault();
 
     const { accounts, contract } = this.state;
     const secret = this.state.joinGameForm.secret;
-    const hashedSecret = await contract.methods.encodeString(secret).call();
+    const hashedSecret = await contract.methods.encode(secret, accounts[0]).call();
 
     await contract.methods
-      .joinGame(game.id, hashedSecret)
+      .commitNumber(game.id, hashedSecret)
       .send({
         from: accounts[0],
         value: game.deposit
@@ -209,13 +209,13 @@ class Flipper extends Component {
     this.loadGames();
   }
 
-  confirmNumber = async(e, gameId) => {
+  revealNumber = async(e, gameId) => {
     e.preventDefault();
 
     const { accounts, contract, confirmNumberValue } = this.state;
 
     await contract.methods
-      .confirmNumber(gameId, confirmNumberValue)
+      .revealNumber(gameId, confirmNumberValue)
       .send({ from: accounts[0] });
 
     this.loadGames();
@@ -353,6 +353,23 @@ class Flipper extends Component {
                   <div key={index}>
                     <header>
                       <h2>#{game.id}</h2>
+                      <h5>
+                        Status:
+                        {game.completed ? 'Completed' : ''}
+                        {game.closed ? 'Closed' : ''}
+                        {
+                          !game.completed &&
+                          !game.closed &&
+                          gameConfig.data.participantsNumber > game.participants.length+''
+                            ? 'Waiting commits' + ` (${game.commitCounter}/${gameConfig.data.participantsNumber})` : ''
+                        }
+                        {
+                          !game.completed &&
+                          !game.closed &&
+                          gameConfig.data.participantsNumber === game.participants.length+''
+                            ? 'Revealing numbers' + ` (${game.revealCounter}/${gameConfig.data.participantsNumber})` : ''
+                        }
+                      </h5>
 
                       <div>
                         <button>Remove</button>
@@ -379,19 +396,9 @@ class Flipper extends Component {
                       }
                     </ul>
 
-                    <h5>
-                      Winners: {game.winners.length}/{gameConfig.data.winnersNumber}</h5>
-                    <ul>
-                      {
-                        game.winners.map((winner, index) => {
-                          return <li key={index}>{winner}</li>;
-                        })
-                      }
-                    </ul>
-
                     <div>
-                      <h5>Join to game</h5>
-                      <form onSubmit={(event) => this.joinGame(event, game)}>
+                      <h5>Commit number</h5>
+                      <form onSubmit={(event) => this.commitNumber(event, game)}>
                         <input
                           type="number"
                           name="secret"
@@ -402,8 +409,8 @@ class Flipper extends Component {
                     </div>
 
                     <div>
-                      <h5>Confirm secret</h5>
-                      <form onSubmit={(event) => this.confirmNumber(event, game.id)}>
+                      <h5>Reveal number</h5>
+                      <form onSubmit={(event) => this.revealNumber(event, game.id)}>
                         <input
                           type="number"
                           name="secret"
@@ -414,8 +421,6 @@ class Flipper extends Component {
                         <input type="submit" value="Confirm"/>
                       </form>
                     </div>
-
-                    {JSON.stringify(game)}
 
                   </div>
                 );

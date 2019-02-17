@@ -45,15 +45,6 @@ class App extends Component {
         deployedNetwork && deployedNetwork.address
       );
 
-      contract.events.SessionCreated({}, (error, event) => console.log(event))
-        .on('data', (event) => {
-          console.log(event);
-        })
-        .on('changed', (event) => {
-          console.log(event);
-        })
-        .on('error', console.error)
-
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
       this.setState({

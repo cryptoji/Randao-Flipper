@@ -14,7 +14,8 @@ class Flipper extends Component {
       // Forms
       configurationForm: {
         participants: 0,
-        winners: 0
+        winners: 0,
+        deadline: 0
       },
 
       createGameForm: {
@@ -60,8 +61,19 @@ class Flipper extends Component {
 
       this.setState({ web3, accounts, contract });
 
-      const data = await contract.methods.encode(1, accounts[0]).call();
-      console.log(data);
+      const balance = await web3.eth.getBalance(contract.options.address);
+      console.log(`Contract balance: ${web3.utils.fromWei(web3.utils.toBN(balance), 'ether')} ETH`);
+
+      // let wNum = 2;
+      // let pNum = 3;
+      // let random = Math.floor(Math.random() * pNum);
+      //
+      // console.log('R',random)
+      //
+      // while(random+wNum > pNum) {
+      //   random--;
+      //   console.log(random)
+      // }
 
       // Initial data
       this.loadNetworkInfo();
@@ -165,10 +177,10 @@ class Flipper extends Component {
     e.preventDefault();
 
     const { accounts, contract } = this.state;
-    const { participants, winners } = this.state.configurationForm;
+    const { participants, winners, deadline } = this.state.configurationForm;
 
     await contract.methods
-      .createConfiguration(participants, winners)
+      .createConfiguration(participants, winners, deadline)
       .send({ from: accounts[0] });
 
     this.loadConfigurations();
@@ -218,6 +230,14 @@ class Flipper extends Component {
       .revealNumber(gameId, confirmNumberValue)
       .send({ from: accounts[0] });
 
+    this.loadGames();
+  }
+
+  completeGame = async(e, gameId) => {
+    e.preventDefault();
+
+    const { accounts, contract } = this.state;
+    await contract.methods.completeGame(gameId).send({ from: accounts[0] });
     this.loadGames();
   }
 
@@ -339,6 +359,14 @@ class Flipper extends Component {
                 value={this.state.configurationForm.winners}
                 onChange={this.handleAddConfigChange}/>
             </div>
+            <div>
+              <label>Deadline</label>
+              <input
+                type="number"
+                name="deadline"
+                value={this.state.configurationForm.deadline}
+                onChange={this.handleAddConfigChange}/>
+            </div>
             <input type="submit" value="Add"/>
           </form>
         </section>
@@ -353,6 +381,9 @@ class Flipper extends Component {
                   <div key={index}>
                     <header>
                       <h2>#{game.id}</h2>
+                      <h5>
+                        Deadline: {game.deadline}
+                      </h5>
                       <h5>
                         Status:
                         {game.completed ? 'Completed' : ''}
@@ -372,6 +403,9 @@ class Flipper extends Component {
                       </h5>
 
                       <div>
+                        <button onClick={(e) => this.completeGame(e, game.id)}>
+                          Complete
+                        </button>
                         <button>Remove</button>
                       </div>
                     </header>
@@ -392,6 +426,17 @@ class Flipper extends Component {
                       {
                         game.participants.map((participant, index) => {
                           return <li key={index}>{participant}</li>;
+                        })
+                      }
+                    </ul>
+
+                    <h5>
+                      Winners
+                    </h5>
+                    <ul>
+                      {
+                        game.winners.map((winner, index) => {
+                          return <li key={index}>{winner}</li>;
                         })
                       }
                     </ul>
@@ -421,7 +466,7 @@ class Flipper extends Component {
                         <input type="submit" value="Confirm"/>
                       </form>
                     </div>
-
+                    <hr/>
                   </div>
                 );
               })

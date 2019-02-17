@@ -13,8 +13,8 @@ contract EtherFlipper is Ownable {
   // Participant structure
   struct GameParticipant {
     bytes32 secret; // secret on each round
-    bool confirmed;
-    bool joined;
+    bool revealed;
+    bool commited;
   }
 
   struct GameSession {
@@ -39,7 +39,7 @@ contract EtherFlipper is Ownable {
 
     // Participants data
     address[] participants;
-    // address[] winners;
+    address[] winners;
 
     // For internal logic
     mapping(address => GameParticipant) _participants;
@@ -87,8 +87,8 @@ contract EtherFlipper is Ownable {
       uint revealCounter,
       bool completed,
       bool closed,
-      address[] memory participants
-      // address[] memory winners
+      address[] memory participants,
+      address[] memory winners
     )
   {
     GameSession memory game = GameSessions[gameId];
@@ -102,8 +102,8 @@ contract EtherFlipper is Ownable {
       game.revealCounter,
       game.completed,
       game.closed,
-      game.participants
-      // game.winners
+      game.participants,
+      game.winners
     );
   }
 
@@ -127,7 +127,7 @@ contract EtherFlipper is Ownable {
     game.commitCounter = 1;
     game.revealCounter = 0;
     game.participants = new address[](0);
-    // game.winners = new address[](0);
+    game.winners = new address[](0);
     game.random = 0;
 
     // Owner will first participant
@@ -157,27 +157,27 @@ contract EtherFlipper is Ownable {
 
   // -------------------------
   // Common clients methods
-  event JoinedGame(uint gameId, address participant);
+  event NumberCommited(uint gameId, address participant);
 
-  function joinGame(uint gameId, bytes32 secret) payable external {
+  function commitNumber(uint gameId, bytes32 secret) payable external {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
 
     require(msg.value == game.deposit, "msg.value should equal to game deposit");
     require(game.commitCounter < config.participantsNumber, "All participants are joined");
-    require(!game._participants[msg.sender].joined, "You are joined");
+    require(!game._participants[msg.sender].commited, "You are commited");
 
     game.participants.push(msg.sender);
     game._participants[msg.sender] = GameParticipant(secret, false, true);
     game.commitCounter++;
 
-    emit JoinedGame(gameId, msg.sender);
+    emit NumberCommited(gameId, msg.sender);
   }
 
-  event GameFinished(uint gameId, uint random);
-  event NumberConfirmed(uint gameId);
+  event GameCompleted(uint gameId, address[] winners);
+  event NumberRevealed(uint gameId);
 
-  function confirmNumber(uint gameId, uint number) external {
+  function revealNumber(uint gameId, uint number) external {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
     bytes32 secret = game._participants[msg.sender].secret;
@@ -185,21 +185,28 @@ contract EtherFlipper is Ownable {
     require(game.commitCounter == config.participantsNumber, "Not all participants are joined");
     require(game.revealCounter < config.participantsNumber, "All numbers are confirmed");
     require(secret == encode(number, msg.sender), "Not valid number");
-    require(!game._participants[msg.sender].confirmed, "You are confirmed your number");
+    require(!game._participants[msg.sender].revealed, "You are revealed your number");
 
     game.revealCounter++;
     game.random += number;
-    game._participants[msg.sender].confirmed = true;
+    game._participants[msg.sender].revealed = true;
 
-    emit NumberConfirmed(gameId);
+    emit NumberRevealed(gameId);
 
     if(game.revealCounter == config.participantsNumber) {
-      // game.winners.push();
-      game.completed = true;
+      game.random = game.random % config.participantsNumber;
 
-      emit GameFinished(gameId, game.random);
+      for(uint i = 0; i < config.winnersNumber; i++) {
+        address winner = game.participants[game.random + i];
+        game.winners.push(winner);
+      }
+
+      game.completed = true;
+      emit GameCompleted(gameId, game.winners);
     }
   }
 
-  // function getReward() {}
+  function sendReward(uint gameId) external {
+
+  }
 }

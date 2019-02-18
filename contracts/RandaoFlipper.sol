@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract EtherFlipper is Ownable {
+contract RandaoFlipper is Ownable {
 
   // Game configuration
   struct GameConfiguration {
@@ -227,17 +227,39 @@ contract EtherFlipper is Ownable {
     );
 
     uint random = (game.random + block.number) % config.participantsNumber;
-    bool condition = (random + config.winnersNumber) > game.participants.length;
 
-    while(condition) { random--; }
+    while((random + config.winnersNumber) > game.participants.length) { random--; }
+    while((random - config.winnersNumber / 2 + 1) < 0) { random++; }
 
-    game.completed = true;
+    bool takeRight = true;
+    uint leftBias = random;
+    uint rightBias = random;
 
     for(uint i = 0; i < config.winnersNumber; i++) {
-      address winner = game.participants[random + i];
-      game._winners[winner] = true;
-      game.winners.push(winner);
+      if(takeRight) {
+        address winner = game.participants[rightBias];
+        GameParticipant memory participant = game._participants[winner];
+
+        if(participant.revealed) {
+          game._winners[winner] = true;
+          game.winners.push(winner);
+        }
+
+        rightBias++;
+      } else {
+        leftBias--;
+
+        address winner = game.participants[leftBias];
+        GameParticipant memory participant = game._participants[winner];
+
+        if(participant.revealed) {
+          game._winners[winner] = true;
+          game.winners.push(winner);
+        }
+      }
     }
+
+    game.completed = true;
 
     emit GameCompleted(gameId, game.winners);
   }
@@ -276,7 +298,8 @@ contract EtherFlipper is Ownable {
     require(game._winners[msg.sender], "You address is not in winners");
 
     // Send reward
-    require(msg.sender.send(address(this).balance), "The contract cannot send receive");
+    uint rewardValue = (game.deposit * game.participants.length) / game.winners.length;
+    require(msg.sender.send(rewardValue), "The contract cannot send tokens to receiver");
     participant.rewarded = true;
 
     emit RewardSent(gameId, msg.sender);

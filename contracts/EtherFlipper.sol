@@ -9,8 +9,6 @@ contract EtherFlipper is Ownable {
     uint participantsNumber;
     uint winnersNumber;
 
-    // % который теряют проигравшие
-
     // After this block users will receive
     // rewards if anybody address will a winner.
     // Deposits of participants who did not
@@ -23,6 +21,7 @@ contract EtherFlipper is Ownable {
     bytes32 secret; // secret on each round
     bool revealed;
     bool commited;
+    bool rewarded;
   }
 
   struct GameSession {
@@ -32,10 +31,8 @@ contract EtherFlipper is Ownable {
     uint deposit; // Deposit to join
     address owner; // Session owner
 
-    // Random numbers collected
-    // from game participants
+    // Random numbers collected from game participants
     // it is f(p1.num...pN.num)
-    // for each round
     uint random;
 
     uint commitCounter;
@@ -53,12 +50,13 @@ contract EtherFlipper is Ownable {
 
     // For internal logic
     mapping(address => GameParticipant) _participants;
+    mapping(address => bool) _winners;
   }
 
   // -------------------
   // Game sessions data
   uint public GameCounter; // Number of games
-  GameSession[] public GameSessions; // Games array
+  GameSession[] public GameSessions; // Games.jsx array
 
   // ---------------------
   // Configurations data
@@ -67,8 +65,8 @@ contract EtherFlipper is Ownable {
 
   // ---------------------
   // Utils functions
-  function encode(uint256 s, address addr) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(s, addr));
+  function encode(uint256 s, address sender) public pure returns (bytes32) {
+    return keccak256(abi.encodePacked(s, sender));
   }
 
   // ------------------------
@@ -147,7 +145,7 @@ contract EtherFlipper is Ownable {
 
     // Owner will first participant
     game.participants.push(msg.sender);
-    game._participants[msg.sender] = GameParticipant(secret, false, true);
+    game._participants[msg.sender] = GameParticipant(secret, false, true, false);
 
     emit GameCreated(game.id);
   }
@@ -186,7 +184,7 @@ contract EtherFlipper is Ownable {
     require(!game._participants[msg.sender].commited, "You are commited");
 
     game.participants.push(msg.sender);
-    game._participants[msg.sender] = GameParticipant(secret, false, true);
+    game._participants[msg.sender] = GameParticipant(secret, false, true, false);
     game.commitCounter++;
 
     emit NumberCommited(gameId, msg.sender);
@@ -212,25 +210,23 @@ contract EtherFlipper is Ownable {
     emit NumberRevealed(gameId);
   }
 
-  // --------------------------
-  // Complete game method
-  // calculates winners by
-  // common random number
+  // -------------------------------
+  // Complete game method calculates
+  // winners by common random number
   event GameCompleted(uint gameId, address[] winners);
 
   function completeGame(uint gameId) external {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
 
+    require(!game.completed, "This game is completed");
     require(game.revealCounter > 0, "Nobody didn't reveal number, is impossible to select winners");
     require(
       game.revealCounter == config.participantsNumber || game.deadline < block.number,
       "Not all participants revealed and the game deadline is not now"
     );
 
-    // bytes32 hash = blockhash(block.number - 1);
-    // uint salt = uint(hash);
-    uint random = game.random % config.participantsNumber;
+    uint random = (game.random + block.number) % config.participantsNumber;
     bool condition = (random + config.winnersNumber) > game.participants.length;
 
     while(condition) { random--; }
@@ -239,6 +235,7 @@ contract EtherFlipper is Ownable {
 
     for(uint i = 0; i < config.winnersNumber; i++) {
       address winner = game.participants[random + i];
+      game._winners[winner] = true;
       game.winners.push(winner);
     }
 
@@ -253,7 +250,7 @@ contract EtherFlipper is Ownable {
   function closeGame(uint gameId) external {
     GameSession storage game = GameSessions[gameId];
 
-    require(game.closed, "This game already is closed");
+    require(!game.closed, "This game already is closed");
     require(game._participants[msg.sender].commited, "You are not game participant");
     require(
       game.deadline < block.number && game.revealCounter == 0,
@@ -265,7 +262,23 @@ contract EtherFlipper is Ownable {
     emit GameClosed(gameId);
   }
 
-  function sendReward(uint gameId) external {
+  // -----------------------------
+  // After game is completed
+  // users can get their rewards
+  event RewardSent(uint gameId, address receiver);
 
+  function getReward(uint gameId) external {
+    GameSession storage game = GameSessions[gameId];
+    GameParticipant storage participant = game._participants[msg.sender];
+
+    require(game.completed || game.closed, "Game is not completed or closed");
+    require(!participant.rewarded, "You are already rewarded");
+    require(game._winners[msg.sender], "You address is not in winners");
+
+    // Send reward
+    require(msg.sender.send(address(this).balance), "The contract cannot send receive");
+    participant.rewarded = true;
+
+    emit RewardSent(gameId, msg.sender);
   }
 }

@@ -5,6 +5,7 @@ import "truffle/DeployedAddresses.sol";
 import "../contracts/RandaoFlipper.sol";
 
 contract TestRandaoFlipper {
+  uint public initialBalance = 100 ether;
 
   function testItStoresAValue() public {
     RandaoFlipper randaoFlipper = RandaoFlipper(DeployedAddresses.RandaoFlipper());

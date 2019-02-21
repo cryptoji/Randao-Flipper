@@ -27,20 +27,18 @@ contract RandaoFlipper is Ownable {
   struct GameSession {
     uint id; // Game Id
     uint configId; // Configuration Id
-
     uint deposit; // Deposit to join
-    address owner; // Session owner
+    // address owner; // Session owner
 
     // Random numbers collected from game participants
     // it is f(p1.num...pN.num)
     uint random;
-
     uint commitCounter;
     uint revealCounter;
-
     uint deadline;
 
     // Statuses of session
+    bool ownerInvolved;
     bool completed;
     bool closed;
 
@@ -55,18 +53,41 @@ contract RandaoFlipper is Ownable {
 
   // -------------------
   // Game sessions data
-  uint public GameCounter; // Number of games
-  GameSession[] public GameSessions; // Games.jsx array
+  // uint public GameCounter; // Number of games
+  GameSession[] public GameSessions; // Games array
 
   // ---------------------
   // Configurations data
-  uint public ConfigurationsCounter;
+  // uint public ConfigurationsCounter;
   GameConfiguration[] public GameConfigurations;
 
   // ---------------------
   // Utils functions
   function encode(uint256 s, address sender) public pure returns (bytes32) {
     return keccak256(abi.encodePacked(s, sender));
+  }
+
+  // ---------------------------
+  // Create game configuration
+  event GameConfigurationCreated(uint id);
+
+  function createConfiguration(
+    uint _participantsNumber,
+    uint _winnersNumber,
+    uint _duration
+  ) onlyOwner external {
+    uint configurationId = GameConfigurations.length++;
+    GameConfiguration storage configuration = GameConfigurations[configurationId];
+
+    configuration.participantsNumber = _participantsNumber;
+    configuration.winnersNumber = _winnersNumber;
+    configuration.duration = _duration;
+
+    emit GameConfigurationCreated(configurationId);
+  }
+
+  function getConfigurationsCount() public view returns (uint configurationsCount) {
+    return GameConfigurations.length;
   }
 
   // ------------------------
@@ -82,92 +103,59 @@ contract RandaoFlipper is Ownable {
     _;
   }
 
-  function getGame(uint gameId)
-    external
-    view
-    returns (
-      uint id,
-      uint configId,
-      uint deposit,
-      address owner,
-      uint random,
-      uint commitCounter,
-      uint revealCounter,
-      uint deadline,
-      bool completed,
-      bool closed,
-      address[] memory participants,
-      address[] memory winners
-    )
+  // Get game participants and winners arrays
+  function getGameData(uint gameId) external view returns (
+    address[] memory participants,
+    address[] memory winners
+  )
   {
-    GameSession memory game = GameSessions[gameId];
     return (
-      game.id,
-      game.configId,
-      game.deposit,
-      game.owner,
-      game.random,
-      game.commitCounter,
-      game.revealCounter,
-      game.deadline,
-      game.completed,
-      game.closed,
-      game.participants,
-      game.winners
+      GameSessions[gameId].participants,
+      GameSessions[gameId].winners
     );
   }
 
-  function createGame(uint configId, bytes32 secret)
-    isValidConfiguration(configId)
+  function getGamesCount() public view returns (uint gamesCount) {
+    return GameSessions.length;
+  }
+
+  function createGame(
+    uint _configId,
+    bytes32 _secret,
+    uint _deposit,
+    bool _ownerInvolved
+  ) onlyOwner
+    isValidConfiguration(_configId)
     payable
     external
   {
-    GameCounter++;
-
     uint gameId = GameSessions.length++;
 
     // Create game
     GameSession storage game = GameSessions[gameId];
-    GameConfiguration memory configuration = GameConfigurations[configId];
+    GameConfiguration memory configuration = GameConfigurations[_configId];
 
     game.id = gameId;
-    game.configId = configId;
-    game.deposit = msg.value;
-    game.owner = msg.sender;
+    game.configId = _configId;
+    game.deposit = _deposit;
+    game.ownerInvolved = _ownerInvolved;
     game.completed = false;
     game.closed = false;
-    game.commitCounter = 1;
+    game.commitCounter = 0;
     game.revealCounter = 0;
     game.participants = new address[](0);
     game.winners = new address[](0);
     game.random = 0;
     game.deadline = block.number + configuration.duration;
 
-    // Owner will first participant
-    game.participants.push(msg.sender);
-    game._participants[msg.sender] = GameParticipant(secret, false, true, false);
+    // Owner will first participant if his involved
+    if(!_ownerInvolved) {
+      game.participants.push(owner());
+      game._participants[owner()] = GameParticipant(_secret, false, true, false);
+      game.commitCounter++;
+    }
 
     emit GameCreated(game.id);
-  }
-
-  // ---------------------------
-  // Create game configuration
-  event GameConfigurationCreated(uint indexed id);
-
-  function createConfiguration(
-    uint _participantsNumber,
-    uint _winnersNumber,
-    uint _duration
-  ) onlyOwner external {
-    uint configurationId = GameConfigurations.length++;
-    GameConfiguration storage configuration = GameConfigurations[configurationId];
-
-    configuration.participantsNumber = _participantsNumber;
-    configuration.winnersNumber = _winnersNumber;
-    configuration.duration = _duration;
-
-    ConfigurationsCounter++;
-    emit GameConfigurationCreated(configurationId);
   }
 
   // -------------------------
@@ -178,7 +166,9 @@ contract RandaoFlipper is Ownable {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
 
-    require(game.deadline > block.number, "This game was deadlined");
+    require(!game.completed, "This game is already completed");
+    require(!game.closed, "This game is already closed");
+    require(game.deadline >= block.number, "This game was deadlined");
     require(msg.value == game.deposit, "msg.value should equal to game deposit");
     require(game.commitCounter < config.participantsNumber, "All participants are joined");
     require(!game._participants[msg.sender].commited, "You are commited");
@@ -197,7 +187,9 @@ contract RandaoFlipper is Ownable {
     GameConfiguration memory config = GameConfigurations[game.configId];
     bytes32 secret = game._participants[msg.sender].secret;
 
-    require(game.deadline > block.number, "This game was deadlined");
+    require(!game.completed, "This game is already completed");
+    require(!game.closed, "This game is already closed");
+    require(game.deadline >= block.number, "This game was deadlined");
     require(game.commitCounter == config.participantsNumber, "Not all participants are joined");
     require(game.revealCounter < config.participantsNumber, "All numbers are revealed");
     require(secret == encode(number, msg.sender), "Not valid number");
@@ -219,45 +211,49 @@ contract RandaoFlipper is Ownable {
     GameSession storage game = GameSessions[gameId];
     GameConfiguration memory config = GameConfigurations[game.configId];
 
-    require(!game.completed, "This game is completed");
+    require(!game.completed, "This game is already completed");
+    require(!game.closed, "This game is already closed");
     require(game.revealCounter > 0, "Nobody didn't reveal number, is impossible to select winners");
     require(
-      game.revealCounter == config.participantsNumber || game.deadline < block.number,
+      game.revealCounter == config.participantsNumber || game.deadline <= block.number,
       "Not all participants revealed and the game deadline is not now"
     );
 
+    // TODO refactor this
     uint random = (game.random + block.number) % config.participantsNumber;
+    uint winnersNum = config.winnersNumber;
 
-    while((random + config.winnersNumber) > game.participants.length) { random--; }
-    while((random - config.winnersNumber / 2 + 1) < 0) { random++; }
+    while((random + winnersNum / 2) > game.participants.length) { random--; }
+    while((random - winnersNum / 2 + 1) < 0) { random++; }
 
     bool takeRight = true;
     uint leftBias = random;
     uint rightBias = random;
 
-    for(uint i = 0; i < config.winnersNumber; i++) {
+    address winner;
+    GameParticipant memory participant;
+
+    for(uint i = 0; i < winnersNum; i++) {
+      uint bias;
       if(takeRight) {
-        address winner = game.participants[rightBias];
-        GameParticipant memory participant = game._participants[winner];
-
-        if(participant.revealed) {
-          game._winners[winner] = true;
-          game.winners.push(winner);
-        }
-
+        bias = rightBias;
+        takeRight = false;
         rightBias++;
       } else {
         leftBias--;
+        bias = leftBias;
+        takeRight = true;
+      }
 
-        address winner = game.participants[leftBias];
-        GameParticipant memory participant = game._participants[winner];
+      winner = game.participants[bias];
+      participant = game._participants[winner];
 
-        if(participant.revealed) {
-          game._winners[winner] = true;
-          game.winners.push(winner);
-        }
+      if(participant.revealed) {
+        game._winners[winner] = true;
+        game.winners.push(winner);
       }
     }
+    // -----------------
 
     game.completed = true;
 
@@ -273,9 +269,10 @@ contract RandaoFlipper is Ownable {
     GameSession storage game = GameSessions[gameId];
 
     require(!game.closed, "This game already is closed");
+    require(!game.completed, "This game already is completed");
     require(game._participants[msg.sender].commited, "You are not game participant");
     require(
-      game.deadline < block.number && game.revealCounter == 0,
+      game.deadline <= block.number && game.revealCounter == 0,
       "Not all participants revealed and the game deadline is not now"
     );
 
@@ -294,12 +291,18 @@ contract RandaoFlipper is Ownable {
     GameParticipant storage participant = game._participants[msg.sender];
 
     require(game.completed || game.closed, "Game is not completed or closed");
-    require(!participant.rewarded, "You are already rewarded");
     require(game._winners[msg.sender], "You address is not in winners");
+    require(!participant.rewarded, "You are already rewarded");
 
     // Send reward
-    uint rewardValue = (game.deposit * game.participants.length) / game.winners.length;
-    require(msg.sender.send(rewardValue), "The contract cannot send tokens to receiver");
+    uint prizePool = (game.deposit * game.participants.length);
+    if(game.ownerInvolved) { prizePool = (game.deposit * game.participants.length - 1); }
+
+    uint reward = prizePool / game.winners.length;
+    if(game.closed) { reward = game.deposit; }
+
+    require(msg.sender.send(reward), "The contract cannot send reward to receiver");
+
     participant.rewarded = true;
 
     emit RewardSent(gameId, msg.sender);

@@ -4,7 +4,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract RandaoFlipper is Ownable {
 
-  // Game configuration
+  // GameCard configuration
   struct GameConfiguration {
     uint participantsNumber;
     uint winnersNumber;
@@ -25,7 +25,7 @@ contract RandaoFlipper is Ownable {
   }
 
   struct GameSession {
-    uint id; // Game Id
+    uint id; // GameCard Id
     uint configId; // Configuration Id
     uint deposit; // Deposit to join
     // address owner; // Session owner
@@ -52,7 +52,7 @@ contract RandaoFlipper is Ownable {
   }
 
   // -------------------
-  // Game sessions data
+  // GameCard sessions data
   // uint public GameCounter; // Number of games
   GameSession[] public GameSessions; // Games array
 
@@ -93,7 +93,7 @@ contract RandaoFlipper is Ownable {
   // ------------------------
   // Create new game session
   // with selected configuration
-  event GameCreated(uint indexed id);
+  event GameCreated(uint id);
 
   modifier isValidConfiguration(uint configId) {
     require(
@@ -130,6 +130,8 @@ contract RandaoFlipper is Ownable {
     external
   {
     uint gameId = GameSessions.length++;
+
+    require(_deposit > 0.1 ether, "A deposit cannot be small than 0.1 eth");
 
     // Create game
     GameSession storage game = GameSessions[gameId];

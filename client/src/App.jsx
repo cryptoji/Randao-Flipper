@@ -1,351 +1,566 @@
-import React, { Component } from "react";
-import TokensFlipperContract from "./contracts/TokensFlipper.json";
-import getWeb3 from "./utils/getWeb3";
-
-import "./App.css";
+import React, { Component } from 'react';
+import getWeb3 from './utils/getWeb3';
+import RandaoFlipper from './contracts/RandaoFlipper.json';
 
 class App extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      // Form
-      createSessionForm: {
-        numberOfParticipants: 20,
-        percentOfWinners: 10,
-        betAmount: 0.1,
-      },
-
-      // State
-      gameSessions: [],
-      numberOfSessions: 0,
-      numberOfWinners: 0,
-      totalWinsFund: 0,
-
-      // Constants
       web3: null,
       accounts: null,
-      contract: null
-    };
+      contract: null,
+
+      // Forms
+      configurationForm: {
+        participants: 0,
+        winners: 0,
+        deadline: 0
+      },
+
+      createGameForm: {
+        configId: 0,
+        deposit: 0,
+        secret: 0
+      },
+
+      joinGameForm: {
+        secret: 0
+      },
+
+      confirmNumberValue: 0,
+
+      // Block chain info
+      networkInfo: {
+        height: 0
+      },
+
+      // GameCard data
+      configurations: [],
+      games: []
+    }
   }
 
-  componentDidMount = async () => {
+  async componentDidMount() {
     try {
-      // Get network provider and web3 instance.
       const web3 = await getWeb3();
-
-      // Use web3 to get the user's accounts.
       const accounts = await web3.eth.getAccounts();
 
       // Get the contract instance.
       const networkId = await web3.eth.net.getId();
-      const deployedNetwork = TokensFlipperContract.networks[networkId];
+      const deployedNetwork = RandaoFlipper.networks[networkId];
       const contract = new web3.eth.Contract(
-        TokensFlipperContract.abi,
+        RandaoFlipper.abi,
         deployedNetwork && deployedNetwork.address
       );
 
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({
-        web3,
-        accounts,
-        contract
-      });
+      // await contract.methods.newCampaign(540, web3.utils.toHex(1*10**18), 50, 30).send({
+      //   from: accounts[0],
+      //   value: 1000000000000000000
+      // });
 
-      // Initial load of data
-      await this.loadStatistics();
-      await this.loadSessions();
-    } catch (error) {
-      // Catch any errors for any of the above operations.
-      alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`,
-      );
-      console.error(error);
+      this.setState({ web3, accounts, contract });
+
+      const hash = await contract.methods.encode(7, accounts[0]).call();
+      console.log(hash)
+
+      const balance = await web3.eth.getBalance(contract.options.address);
+      console.log(`Contract balance: ${web3.utils.fromWei(web3.utils.toBN(balance), 'ether')} ETH`);
+
+      // Select winners alg
+      let wins = [];
+      let wNum = 3;
+      let pNum = 10;
+      let random = Math.floor(Math.random() * pNum);
+
+      for(let i = 0; i < pNum; i++) {
+        wins.push(i);
+      }
+
+      console.log('R',random, ';W',wins)
+
+      while(random+wNum/2 > pNum) { random--; }
+      while(random-wNum/2+1 < 0) { random++; }
+
+      let takeRight = true;
+      let leftBias = random; // left bias
+      let rightBias = random;
+      for(let i = 0; i < wNum; i++) {
+        let bias;
+        if(takeRight) {
+          bias = rightBias;
+          takeRight = false;
+          rightBias++;
+        } else {
+          leftBias--;
+          bias = leftBias;
+          takeRight = true;
+        }
+        console.log(wins[bias]);
+      }
+      // -------------------
+
+      // Initial data
+      this.subscribeNewBlocks();
+      this.subscribeContractEvents();
+
+      await this.loadNetworkInfo();
+      await this.loadConfigurations();
+      await this.loadGames();
+
+      // this.addConfiguration();
+    } catch (e) {
+      console.error(e);
     }
-  };
+  }
 
-  // -------------------------
-  // Form handlers
-  handleInputChange = (event) => {
+  subscribeNewBlocks() {
+    const { web3 } = this.state;
+
+    try {
+      web3.eth
+        .subscribe('newBlockHeaders', (error, result) => {
+          if (!error) {
+            console.log(result);
+            return;
+          }
+          console.error(error);
+        })
+        .on('data', blockHeader => {
+          this.setState(prevState => {
+            return {
+              networkInfo: {
+                ...prevState.networkInfo,
+                height: blockHeader.number
+              }
+            }
+          })
+        })
+        .on('error', console.error);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  subscribeContractEvents() {
+    const { contract } = this.state;
+
+    try {
+      contract.events.GameCreated()
+        .on('data', (event) => {
+          console.log(event)
+        })
+        .on('changed', (event) => {
+          //
+        })
+        .on('error', console.error);
+
+
+      contract.events.NumberCommited()
+        .on('data', (event) => {
+          console.log(event)
+        })
+        .on('changed', (event) => {
+          //
+        })
+        .on('error', console.error);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  loadNetworkInfo = async() => {
+    const { web3 } = this.state;
+    const currentHeight = await web3.eth.getBlockNumber();
+
+    this.setState(prevState => {
+      return {
+        networkInfo: {
+          ...prevState.networkInfo,
+          height: currentHeight
+        }
+      }
+    });
+  }
+
+  loadConfigurations = async() => {
+    const { contract } = this.state;
+    const configurations = [];
+
+    try {
+      const { configurationsCount } =
+        await contract.methods.getConfigurationsCount().call();
+
+      for(let i = 0; i < configurationsCount; i++) {
+        const data = await contract.methods.GameConfigurations(i).call();
+        configurations.push({
+          id: i,
+          label: `${data.winnersNumber} winners from ${data.participantsNumber} players`,
+          data
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.setState({ configurations });
+  }
+
+  loadGames = async() => {
+    const { contract } = this.state;
+    const games = [];
+
+    try {
+      const { gamesCount } = await contract.methods.getGamesCount().call();
+      for(let i = gamesCount-1; i >= 0; i--) {
+        const data = await contract.methods.GameSessions(i).call();
+        games.push(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.setState({ games });
+  }
+
+  addConfiguration = async(e) => {
+    e.preventDefault();
+
+    const { accounts, contract } = this.state;
+    const { participants, winners, deadline } = this.state.configurationForm;
+
+    try {
+      await contract.methods
+        .createConfiguration(participants, winners, deadline)
+        .send({ from: accounts[0] });
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.loadConfigurations();
+  }
+
+  createGame = async(e) => {
+    e.preventDefault();
+
+    const { web3, accounts, contract } = this.state;
+    const { configId, secret, deposit } = this.state.createGameForm;
+
+    const hashedSecret = await contract.methods.encode(secret, accounts[0]).call();
+
+    try {
+      await contract.methods
+        .createGame(configId, hashedSecret)
+        .send({
+          from: accounts[0],
+          value: web3.utils.toWei(web3.utils.toBN(deposit), 'ether')
+        });
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.loadGames();
+  }
+
+  commitNumber = async(e, game) => {
+    e.preventDefault();
+
+    const { accounts, contract } = this.state;
+    const secret = this.state.joinGameForm.secret;
+    const hashedSecret = await contract.methods.encode(secret, accounts[0]).call();
+
+    try {
+      await contract.methods
+        .commitNumber(game.id, hashedSecret)
+        .send({
+          from: accounts[0],
+          value: game.deposit
+        });
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.loadGames();
+  }
+
+  revealNumber = async(e, gameId) => {
+    e.preventDefault();
+
+    const { accounts, contract, confirmNumberValue } = this.state;
+
+    try {
+      await contract.methods
+        .revealNumber(gameId, confirmNumberValue)
+        .send({ from: accounts[0] });
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.loadGames();
+  }
+
+  getReward = async(e, gameId) => {
+    e.preventDefault();
+
+    const { accounts, contract } = this.state;
+
+    try {
+      await contract.methods.getReward(gameId).send({ from: accounts[0] });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  completeGame = async(e, gameId) => {
+    e.preventDefault();
+
+    const { accounts, contract } = this.state;
+
+    try {
+      await contract.methods.completeGame(gameId).send({ from: accounts[0] });
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.loadGames();
+  }
+
+
+  // Events
+  handleSelectConfiguration = (event) => {
+    const configId = event.target.value;
+    this.setState(prevState => {
+      return {
+        createGameForm: {
+          ...prevState.createGameForm,
+          configId: parseInt(configId)
+        }
+      };
+    });
+  }
+
+  handleSecretChange = (event) => {
     const { value, name, type } = event.target;
     this.setState(prevState => {
       return {
-        createSessionForm: {
-          ...prevState.createSessionForm,
+        createGameForm: {
+          ...prevState.createGameForm,
           [name]: type === 'number' ? parseFloat(value) : value
         }
       };
     });
   }
 
-  // --------------------------
-  // Utils
-  canJoinSession = ({ creator, participants }) => {
-    const account = this.state.accounts[0];
-    if(participants.findIndex(address => address === account) >= 0) {
-      return false;
-    }
-    return account !== creator;
+  handleJoinGameChange = (event) => {
+    const { value, name, type } = event.target;
+    this.setState(prevState => {
+      return {
+        joinGameForm: {
+          ...prevState.joinGameForm,
+          [name]: type === 'number' ? parseFloat(value) : value
+        }
+      };
+    });
   }
 
-  isSessionOwner = (creator) => {
-    const account = this.state.accounts[0];
-    return account === creator;
+  handleAddConfigChange = (event) => {
+    const { value, name, type } = event.target;
+    this.setState(prevState => {
+      return {
+        configurationForm: {
+          ...prevState.configurationForm,
+          [name]: type === 'number' ? parseFloat(value) : value
+        }
+      };
+    });
   }
-
-  // -------------------------
-  // Async block chain methods
-  loadStatistics = async() => {
-    const { contract } = this.state;
-    try {
-      const numberOfActiveSessions = await contract.methods.numberOfActiveSessions().call();
-      const numberOfSessions = await contract.methods.numberOfSessions().call();
-      const numberOfWinners = await contract.methods.numberOfWinners().call();
-      const totalWinsFund = await contract.methods.totalWinsFund().call();
-
-      this.setState({
-        numberOfActiveSessions,
-        numberOfSessions,
-        numberOfWinners,
-        totalWinsFund
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  loadSessions = async() => {
-    const { contract, numberOfSessions } = this.state;
-    const gameSessions = [];
-
-    if(numberOfSessions <= 0) {
-      return;
-    }
-
-    for(let i = 0; i < numberOfSessions; i++) {
-      try {
-        const session = await contract.methods.getSession(i).call();
-        gameSessions.push(session);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    this.setState({ gameSessions: gameSessions.reverse() });
-  }
-
-  joinSession = async(event, sessionID) => {
-    const { accounts, contract } = this.state;
-    const value = this.state.gameSessions
-      .find(session => session.index === sessionID)
-      .betAmount;
-
-    try {
-      await contract.methods
-        .joinSession(sessionID)
-        .send({
-          from: accounts[0],
-          value
-        });
-
-      await this.loadSessions();
-      await this.loadStatistics();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  removeSession = async(event, sessionID) => {
-    const { contract, accounts } = this.state;
-
-    const isConfirmedAction = window.confirm("Are you sure want to remove a game session?");
-
-    if(isConfirmedAction) {
-      try {
-        await contract.methods
-          .removeSession(sessionID)
-          .send({ from: accounts[0] });
-
-        this.setState(prevState => {
-          return {
-            gameSessions: prevState.gameSessions.reduce((memo, session) => {
-                if(session.index === sessionID) {
-                  memo.push(Object.assign(session, { isClosed: true }));
-                } else {
-                  memo.push(session);
-                }
-                return memo;
-              }, [])
-          };
-        });
-
-        await this.loadStatistics();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }
-
-  createGameSession = async(event) => {
-    event.preventDefault();
-
-    const { web3, accounts, contract, createSessionForm } = this.state;
-
-    try {
-      // Stores a given value, 5 by default.
-      await contract.methods
-        .createSession(
-          web3.utils.toHex(createSessionForm.betAmount*10**18),
-          createSessionForm.percentOfWinners,
-          createSessionForm.numberOfParticipants
-        )
-        .send({
-          from: accounts[0],
-          value: createSessionForm.betAmount*10**18
-        });
-
-      const createdSession = await contract.methods
-        .getSession(this.state.numberOfSessions)
-        .call();
-
-      this.setState(prevState => {
-        const updatedSessions = [...prevState.gameSessions.reverse(), createdSession];
-        return {
-          gameSessions: updatedSessions.reverse()
-        };
-      });
-
-      await this.loadStatistics();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   render() {
-    if (!this.state.web3) {
-      return (
-        <div className="App">Loading Tokens Flipper...</div>
-      );
-    }
     return (
-      <div className="App">
-        <h1>Tokens Flipper</h1>
-        <ul>
-          <li>Wins fund: {this.state.totalWinsFund} ETH</li>
-          <li>Number of active sessions: {this.state.numberOfActiveSessions}</li>
-          <li>Number of sessions: {this.state.numberOfSessions}</li>
-          <li>Number of winners: {this.state.numberOfWinners}</li>
-        </ul>
+      <main>
+        <header>
+          <h1>Randao Flipper</h1>
+          <h3>Current height: {JSON.stringify(this.state.networkInfo.height)}</h3>
+        </header>
+        <hr/>
         <section>
-          <h3>Create new session</h3>
-          <form onSubmit={this.createGameSession}>
+          <h3>Create game</h3>
+          <form onSubmit={this.createGame}>
             <div>
-              <label htmlFor="betAmount">Bet amount: </label>
-              <input
-                type="number"
-                id="betAmount"
-                name="betAmount"
-                value={this.state.createSessionForm.betAmount}
-                onChange={this.handleInputChange}/>
-            </div>
-            <div>
-              <label htmlFor="percentOfWinners">% of winners: </label>
-              <input
-                type="number"
-                id="percentOfWinners"
-                name="percentOfWinners"
-                value={this.state.createSessionForm.percentOfWinners}
-                onChange={this.handleInputChange}/>
-            </div>
-            <div>
-              <label htmlFor="numberOfParticipants">No. of participants: </label>
-              <input
-                type="number"
-                id="numberOfParticipants"
-                name="numberOfParticipants"
-                value={this.state.createSessionForm.numberOfParticipants}
-                onChange={this.handleInputChange}/>
-            </div>
-
-            <input type="submit" value="Create new session"/>
-          </form>
-          <hr/>
-        </section>
-        <section>
-          <h3>Sessions list</h3>
-          {this.state.gameSessions.map((session) => {
-            const { web3 } = this.state;
-            return (
-              <div key={session.index}>
-                <h2>#{session.index}</h2>
-                <div>
-                  <strong>Bet amount:</strong>
-                  {web3.utils.fromWei(session.betAmount)} ETH
-                </div>
-                <div>
-                  <strong>Number of participants:</strong>
-                  {session.participants.length}/{session.numberOfParticipants}
-                </div>
-                <div>
-                  <strong>Percent of winners:</strong>
-                  {session.percentOfWinners}%
-                </div>
-                <div>
-                  <h4>Participants</h4>
-                  {session.participants.map((participant, index) => {
-                    return (<li key={index}>{participant}</li>);
-                  })}
-                </div>
-                <div>
-                  <h5>Creator: {session.creator}</h5>
-                </div>
+              <label>Configuration</label>
+              <select
+                value={this.state.createGameForm.configId}
+                onChange={this.handleSelectConfiguration}>
                 {
-                  (session.isClosed || session.isCompleted) ?
-                    (
-                      <div>
-                        <p>
-                          {session.isClosed ? <strong style={{'color': 'red'}}>This session is closed by creator</strong> : ''}
-                          {session.isCompleted ? <strong style={{'color': 'green'}}>This session is completed</strong> : ''}
-                        </p>
-                        {
-                          session.isCompleted ?
-                            <div>
-                              <h4>Winners</h4>
-                              {session.winners.map((winner, index) => {
-                                return (<li key={index}>{winner}</li>);
-                              })}
-                            </div>: ''
-                        }
-                      </div>
-                    ):
-                    (
-                      <div>
-                        {
-                          this.canJoinSession(session) ?
-                            <button
-                              onClick={(event) => this.joinSession(event, session.index)}>
-                              Join to session
-                            </button> :
-                            <p><i>You are joined to this session</i></p>
-                        }
-                        {
-                          this.isSessionOwner(session.creator) ?
-                            <button
-                              onClick={(event) => this.removeSession(event, session.index)}>
-                              Remove
-                            </button> :
-                            ''
-                        }
-                      </div>
-                    )
+                  this.state.configurations.map((config, index) => {
+                    return (
+                      <option
+                        key={index}
+                        value={config.id}>
+                        {config.label}
+                      </option>
+                    );
+                  })
                 }
-                <hr/>
-              </div>
-            );
-          })}
+              </select>
+            </div>
+            <div>
+              <label>Secret number</label>
+              <input
+                type="number"
+                name="secret"
+                value={this.state.createGameForm.secret}
+                onChange={this.handleSecretChange}/>
+            </div>
+            <div>
+              <label>Deposit</label>
+              <input
+                type="number"
+                name="deposit"
+                value={this.state.createGameForm.deposit}
+                onChange={this.handleSecretChange}/>
+            </div>
+            <input type="submit" value="Create"/>
+          </form>
         </section>
-      </div>
+        <hr/>
+        <section>
+          <h3>Add configuration</h3>
+          <form onSubmit={this.addConfiguration}>
+            <div>
+              <label>Participants</label>
+              <input
+                type="number"
+                name="participants"
+                value={this.state.configurationForm.participants}
+                onChange={this.handleAddConfigChange}/>
+            </div>
+            <div>
+              <label>Winners</label>
+              <input
+                type="number"
+                name="winners"
+                value={this.state.configurationForm.winners}
+                onChange={this.handleAddConfigChange}/>
+            </div>
+            <div>
+              <label>Deadline</label>
+              <input
+                type="number"
+                name="deadline"
+                value={this.state.configurationForm.deadline}
+                onChange={this.handleAddConfigChange}/>
+            </div>
+            <input type="submit" value="Add"/>
+          </form>
+        </section>
+        <hr/>
+        <section>
+          <h2>Games</h2>
+          <div>
+            {
+              this.state.games.map((game, index) => {
+                const gameConfig = this.state.configurations[game.configId];
+                return (
+                  <div key={index}>
+                    <header>
+                      <h2>#{game.id}</h2>
+                      <h5>
+                        Deadline: {game.deadline}
+                      </h5>
+                      <h5>
+                        Status:
+                        {game.completed ? 'Completed' : ''}
+                        {game.closed ? 'Closed' : ''}
+                        {
+                          !game.completed &&
+                          !game.closed &&
+                          gameConfig.data.participantsNumber > game.participants.length+''
+                            ? 'Waiting commits' + ` (${game.commitCounter}/${gameConfig.data.participantsNumber})` : ''
+                        }
+                        {
+                          !game.completed &&
+                          !game.closed &&
+                          gameConfig.data.participantsNumber === game.participants.length+''
+                            ? 'Revealing numbers' + ` (${game.revealCounter}/${gameConfig.data.participantsNumber})` : ''
+                        }
+                      </h5>
+
+                      <div>
+                        <button onClick={(e) => this.completeGame(e, game.id)}>
+                          Complete
+                        </button>
+                        <button onClick={(e) => this.getReward(e, game.id)}>
+                          Get reward
+                        </button>
+                        <button>Close</button>
+                      </div>
+                    </header>
+
+                    <h5>
+                      Deposit:
+                      {
+                        this.state.web3.utils.fromWei(
+                          this.state.web3.utils.toBN(game.deposit),
+                          'ether'
+                        )
+                      } ETH
+                    </h5>
+                    <h5>
+                      Participants: {game.participants.length}/{gameConfig.data.participantsNumber}
+                    </h5>
+                    <ul>
+                      {
+                        game.participants.map((participant, index) => {
+                          return <li key={index}>{participant}</li>;
+                        })
+                      }
+                    </ul>
+
+                    <h5>
+                      Winners
+                    </h5>
+                    <ul>
+                      {
+                        game.winners.map((winner, index) => {
+                          return <li key={index}>{winner}</li>;
+                        })
+                      }
+                    </ul>
+
+                    <div>
+                      <h5>Commit number</h5>
+                      <form onSubmit={(event) => this.commitNumber(event, game)}>
+                        <input
+                          type="number"
+                          name="secret"
+                          value={this.state.joinGameForm.secret}
+                          onChange={this.handleJoinGameChange}/>
+                        <input type="submit" value="Join"/>
+                      </form>
+                    </div>
+
+                    <div>
+                      <h5>Reveal number</h5>
+                      <form onSubmit={(event) => this.revealNumber(event, game.id)}>
+                        <input
+                          type="number"
+                          name="secret"
+                          value={this.state.confirmNumberValue}
+                          onChange={
+                            (event) => this.setState({ confirmNumberValue: event.target.value })
+                          }/>
+                        <input type="submit" value="Confirm"/>
+                      </form>
+                    </div>
+                    <hr/>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </section>
+      </main>
     );
   }
 }

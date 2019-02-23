@@ -1,9 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import {
-  Container, Row, Col
-} from 'reactstrap';
+import { Row, Col } from 'reactstrap';
 import GameCard from './+game/Card';
 
 class GamesList extends React.Component {
@@ -30,8 +28,8 @@ class GamesList extends React.Component {
                     .reverse()
                 }
               </Row>
-            )
-            : <p className="text-muted">Not created any games yet</p>
+            ) :
+            <p className="text-muted">Not created any games yet</p>
         }
       </section>
     );

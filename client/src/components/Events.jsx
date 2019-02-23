@@ -46,7 +46,7 @@ class EventsList extends React.Component {
         <h5 className="mb-3">Events</h5>
         {
           this.props.events.map((event, index) => (
-            <div key={index}>
+            <div key={index} className="mb-1">
               {
                 event.type === 'GameCreated' ?
                   (
@@ -68,9 +68,9 @@ class EventsList extends React.Component {
                         {
                           event.config ?
                             <ul className="list-unstyled text-muted">
-                              <li>Participants {event.config.participantsNumber}</li>
-                              <li>Winners {event.config.winnersNumber}</li>
-                              <li>Duration {event.config.duration}</li>
+                              <li>- Participants {event.config.participantsNumber}</li>
+                              <li>- Winners {event.config.winnersNumber}</li>
+                              <li>- Duration {event.config.duration}</li>
                             </ul> : ''
                         }
                       </small>
@@ -102,7 +102,7 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
-  handleEvent: event => dispatch(handleEvent(event))
+  handleEvent: (event, updateLists) => dispatch(handleEvent(event, updateLists))
 });
 
 const Events = connect(

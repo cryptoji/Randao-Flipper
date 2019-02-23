@@ -61,6 +61,10 @@ contract RandaoFlipper is Ownable {
   // uint public ConfigurationsCounter;
   GameConfiguration[] public GameConfigurations;
 
+  uint public ownerReward = 3; // Owner reward in percents
+  uint public totalWinners;
+  uint public totalFund;
+
   // ---------------------
   // Utils functions
   function encode(uint256 s, address sender) public pure returns (bytes32) {
@@ -104,14 +108,35 @@ contract RandaoFlipper is Ownable {
   }
 
   // Get game participants and winners arrays
-  function getGameData(uint gameId) external view returns (
+  function getGame(uint gameId) external view returns (
+    uint id,
+    uint configId,
+    uint deposit,
+    uint random,
+    uint commitCounter,
+    uint revealCounter,
+    uint deadline,
+    bool ownerInvolved,
+    bool completed,
+    bool closed,
     address[] memory participants,
     address[] memory winners
   )
   {
+    GameSession memory game = GameSessions[gameId];
     return (
-      GameSessions[gameId].participants,
-      GameSessions[gameId].winners
+      game.id,
+      game.configId,
+      game.deposit,
+      game.random,
+      game.commitCounter,
+      game.revealCounter,
+      game.deadline,
+      game.ownerInvolved,
+      game.completed,
+      game.closed,
+      game.participants,
+      game.winners
     );
   }
 
@@ -151,7 +176,7 @@ contract RandaoFlipper is Ownable {
     game.deadline = block.number + configuration.duration;
 
     // Owner will first participant if his involved
-    if(!_ownerInvolved) {
+    if(_ownerInvolved) {
       game.participants.push(owner());
       game._participants[owner()] = GameParticipant(_secret, false, true, false);
       game.commitCounter++;
@@ -253,6 +278,7 @@ contract RandaoFlipper is Ownable {
       if(participant.revealed) {
         game._winners[winner] = true;
         game.winners.push(winner);
+        totalWinners++;
       }
     }
     // -----------------
@@ -306,6 +332,7 @@ contract RandaoFlipper is Ownable {
     require(msg.sender.send(reward), "The contract cannot send reward to receiver");
 
     participant.rewarded = true;
+    totalFund = totalFund + reward;
 
     emit RewardSent(gameId, msg.sender);
   }

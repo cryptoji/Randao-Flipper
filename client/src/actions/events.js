@@ -13,7 +13,7 @@ export const fetchConfigCreatedEvent = (payload) => ({
   payload
 });
 
-export const handleGameCreated = (event, updateLists = false) => {
+export const handleGameCreated = (event, updateLists) => {
   return (dispatch) => {
     // console.log(event)
     dispatch(
@@ -21,12 +21,13 @@ export const handleGameCreated = (event, updateLists = false) => {
     );
 
     if (updateLists) {
+      console.log(event.data.id)
       dispatch(loadGame(event.data.id));
     }
   };
 };
 
-export const handleConfigCreated = (event, updateLists = false) => {
+export const handleConfigCreated = (event, updateLists) => {
   return (dispatch) => {
     // console.log(event);
     dispatch(
@@ -46,11 +47,11 @@ export const handleEvent = (_event, updateLists = false) => {
     const type = _event.event;
     const data = _event.returnValues;
     const id = _event.id;
-    const event = {id, type, data};
+    const event = { id, type, data };
+    const config = configs.find(c => c.id + '' === data.id);
 
     switch (type) {
       case 'GameConfigurationCreated':
-        const config = configs.find(c => c.id + '' === data.id);
         dispatch(
           handleConfigCreated({...event, config}, updateLists)
         );

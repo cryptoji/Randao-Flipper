@@ -21,6 +21,7 @@ import {
   updateCreateConfigForm,
   updateOwnerInvolved
 } from '../actions/forms';
+import { fetchBalance } from '../actions/blockchain';
 
 export function getConfigTitle(config) {
   const participants = `${config.participantsNumber} participants`;
@@ -72,7 +73,7 @@ class ActionsContainer extends React.Component {
     }
 
     this.toggleGameModal();
-    this.props.updateBalance();
+    await this.props.fetchBalance();
   };
 
   handleCreateConfig = async(event) => {
@@ -90,7 +91,7 @@ class ActionsContainer extends React.Component {
     }
 
     this.toggleConfigModal();
-    this.props.updateBalance();
+    await this.props.fetchBalance();
   };
 
   handleOwnerInvolved = () => {
@@ -111,10 +112,8 @@ class ActionsContainer extends React.Component {
 
   render() {
     return (
-      <section>
-        <h5>Actions</h5>
-
-        <Nav vertical pills>
+      <section className="mb-3">
+        <Nav tabs>
           <NavItem>
             {
               this.props.gameConfigs.length ?
@@ -196,8 +195,8 @@ class ActionsContainer extends React.Component {
                     name="ownerInvolved"
                     id="ownerInvolved"
                     placeholder="Set a deposit"
-                    value={this.props.createGameForm.ownerInvolved}
-                    onClick={this.handleOwnerInvolved}/>{' '}
+                    checked={this.props.createGameForm.ownerInvolved}
+                    onChange={this.handleOwnerInvolved}/>{' '}
                   Owner involved
                 </Label>
               </FormGroup>
@@ -275,7 +274,7 @@ class ActionsContainer extends React.Component {
 
 ActionsContainer.propTypes = {
   // Props
-  updateBalance: PropTypes.func.isRequired,
+  fetchBalance: PropTypes.func.isRequired,
 
   web3: PropTypes.object.isRequired,
   contract: PropTypes.object.isRequired,
@@ -298,6 +297,7 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
+  fetchBalance: () => dispatch(fetchBalance()),
   updateGameForm: payload => dispatch(updateCreateGameForm(payload)),
   updateConfigForm: payload => dispatch(updateCreateConfigForm(payload)),
   updateOwnerInvolved: () => dispatch(updateOwnerInvolved())

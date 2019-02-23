@@ -1,18 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import {
-  fetchGameCreatedEvent,
-  fetchConfigCreatedEvent
-} from '../actions/events';
+import { handleEvent } from '../actions/events';
+
 
 class EventsList extends React.Component {
   constructor(props) {
     super(props);
-
-    this.state = {
-      events: []
-    };
   }
 
   async componentDidMount() {
@@ -20,26 +15,7 @@ class EventsList extends React.Component {
   }
 
   async subscribeEvents(getPastEvents = true) {
-    const { contract, web3 } = this.props;
-
-    const handleEvent = (_event, updateLists = false) => {
-      const type = _event.event;
-      const data = _event.returnValues;
-      const id = _event.id;
-      const event = { id, type, data };
-
-      switch (type) {
-        case 'GameConfigurationCreated':
-          this.handleConfigCreated(event, updateLists);
-          break;
-        case 'GameCreated':
-          this.handleGameCreated(event, updateLists);
-          break;
-        default:
-          return;
-      }
-    };
-
+    const { handleEvent, web3, contract } = this.props;
     try {
       const currentBlock = await web3.eth.getBlockNumber();
 
@@ -64,58 +40,45 @@ class EventsList extends React.Component {
     }
   }
 
-  handleGameCreated(event, updateLists = false) {
-    console.log(event)
-    this.props.fetchGameCreatedEvent(event);
-
-    if (updateLists) {
-      this.props.updateGame(event.data.id);
-    }
-  }
-
-  handleGameClosed() {
-
-  }
-
-  handleGameCompleted() {
-
-  }
-
-  handleConfigCreated(event, updateLists = false) {
-    console.log(event);
-    this.props.fetchConfigCreatedEvent(event);
-
-    if (updateLists) {
-      this.props.updateConfigs();
-    }
-  }
-
-  handleCommited() {
-
-  }
-
-  handleRevealed() {
-
-  }
-
-  handleRewarded() {
-
-  }
-
   render() {
     return (
       <section>
-        <h5>Events</h5>
+        <h5 className="mb-3">Events</h5>
         {
           this.props.events.map((event, index) => (
-            <div key={index} className="mb-1">
-              <small>{event.type}</small>
-              <br/>
-              <small className="text-muted">
-                {JSON.stringify(event.data)}
-              </small>
+            <div key={index}>
+              {
+                event.type === 'GameCreated' ?
+                  (
+                    <div>
+                      <small>
+                        Owner created <Link to={`/game/${event.data.id}`}>
+                          Game {event.data.id}
+                        </Link>
+                      </small>
+                    </div>
+                  ) : ''
+              }
+              {
+                event.type === 'GameConfigurationCreated' ?
+                  (
+                    <div>
+                      <small>
+                        <span>Owner created configuration</span>
+                        {
+                          event.config ?
+                            <ul className="list-unstyled text-muted">
+                              <li>Participants {event.config.participantsNumber}</li>
+                              <li>Winners {event.config.winnersNumber}</li>
+                              <li>Duration {event.config.duration}</li>
+                            </ul> : ''
+                        }
+                      </small>
+                    </div>
+                  ) : ''
+              }
             </div>
-          ))
+          )).reverse()
         }
       </section>
     );
@@ -126,25 +89,20 @@ EventsList.propTypes = {
   web3: PropTypes.object.isRequired,
   contract: PropTypes.object.isRequired,
   events: PropTypes.array.isRequired,
+  gameConfigs: PropTypes.array.isRequired,
 
-  fetchGameCreatedEvent: PropTypes.func.isRequired,
-  fetchConfigCreatedEvent: PropTypes.func.isRequired,
-  updateGame: PropTypes.func.isRequired,
-  updateConfigs: PropTypes.func.isRequired
+  handleEvent: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ({
   contract: state.blockchain.contract,
   web3: state.blockchain.web3,
-  events: [
-    ...state.events.games,
-    ...state.events.configs
-  ]
+  events: state.events.data,
+  gameConfigs: state.games.configs,
 });
 
 const mapDispatchToProps = dispatch => ({
-  fetchGameCreatedEvent: payload => dispatch(fetchGameCreatedEvent(payload)),
-  fetchConfigCreatedEvent: payload => dispatch(fetchConfigCreatedEvent(payload))
+  handleEvent: event => dispatch(handleEvent(event))
 });
 
 const Events = connect(

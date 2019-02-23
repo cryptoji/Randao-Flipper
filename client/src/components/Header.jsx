@@ -15,6 +15,7 @@ import {
 } from 'reactstrap';
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom';
+import { getShortAddress } from '../utils/index';
 
 class HeaderContainer extends React.Component {
   constructor(props) {
@@ -23,12 +24,6 @@ class HeaderContainer extends React.Component {
     this.state = {
       isOpen: false
     };
-  }
-
-  getShortAddress() {
-    const address = this.props.account;
-    const length = address.length;
-    return `${address.substring(0, 8)}...${address.substring(length-6, length)}`
   }
 
   toggle = () => {
@@ -62,12 +57,12 @@ class HeaderContainer extends React.Component {
                     <UncontrolledDropdown nav inNavbar>
                       <DropdownToggle nav caret>
                         <span className="text-success">
-                          {this.getShortAddress()}
-                          </span>
+                          {getShortAddress(this.props.account)}
+                        </span>
                       </DropdownToggle>
                       <DropdownMenu right>
                         <DropdownItem disabled>
-                          Balance {this.props.balance} ETH <i className="fab fa-ethereum"/>
+                          Balance {this.props.balance} ETH
                         </DropdownItem>
                         <DropdownItem divider />
                         <DropdownItem>

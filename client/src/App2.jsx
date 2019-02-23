@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 import { connect } from 'react-redux';
-import getWeb3 from './utils/getWeb3';
-import RandaoFlipper from './contracts/RandaoFlipper.json';
 import PropTypes from 'prop-types';
 
 import { Container, Row, Col } from 'reactstrap';
 
-import Game from './components/Game';
+import { getShortAddress } from './utils/index';
+
+import Game from './components/+game/Page';
 import Header from './components/Header';
 import Games from './components/Games';
 import Actions from './components/Actions';
@@ -15,11 +15,23 @@ import Events from './components/Events';
 
 import { fetchGame, fetchGameConfig } from './actions/games';
 import {
+  initContract,
+  initAccounts,
+  initWeb3,
+  fetchOwner,
+  fetchBalance,
+
   setWeb3,
+  setOwner,
+  setIsOwner,
   setContract,
   setAccounts,
   setBalance
 } from './actions/blockchain';
+import {
+  loadConfigs,
+  loadGames
+} from './actions/games';
 
 class AppComponent extends React.Component {
   constructor(props) {
@@ -27,99 +39,32 @@ class AppComponent extends React.Component {
   }
 
   async componentDidMount() {
-    try {
-      const web3 = await getWeb3();
-      const accounts = await web3.eth.getAccounts();
+    const {
+      initWeb3,
+      initAccounts,
+      initContract,
+      fetchOwner,
+      fetchBalance,
+      loadConfigs,
+      loadGames
+    } = this.props;
 
-      // Get the contract instance.
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = RandaoFlipper.networks[networkId];
-      const contract = new web3.eth.Contract(
-        RandaoFlipper.abi,
-        deployedNetwork && deployedNetwork.address
-      );
+    await initWeb3();
+    await initAccounts();
+    await initContract();
+    await fetchOwner();
 
-      this.props.setWeb3(web3);
-      this.props.setContract(contract);
-      this.props.setAccounts(accounts);
-    } catch (e) {
-      console.error(e);
-    }
-
-    await this.fetchConfigs();
-    await this.fetchGames();
+    await loadConfigs();
+    await loadGames();
 
     if (this.props.accounts.length) {
-      await this.fetchAccountBalance();
+      await fetchBalance();
     }
-  }
 
-  async fetchAccountBalance() {
-    const { web3, accounts } = this.props;
-    const balance = await web3.eth.getBalance(accounts[0]);
-    this.props.setBalance(
-      parseFloat(web3.utils.fromWei(balance).substring(0, 7))
-    );
-  }
-
-  async fetchGame(gameId) {
-    const { contract, web3 } = this.props;
-
-    try {
-      const game = await contract.methods.GameSessions(gameId).call();
-      const config = this.props.configs.find((_, i) => i+'' === game.configId);
-
-      this.props.fetchGame({
-        ...game,
-        config,
-        deposit: web3.utils.fromWei(game.deposit, 'ether')
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async fetchGames() {
-    const { contract } = this.props;
-    try {
-      const { gamesCount } = await contract.methods.getGamesCount().call();
-      let lastIndex = gamesCount - 1;
-
-      if (this.props.gamesCount+'' === gamesCount) return;
-      if (this.props.gamesCount > 0) {
-        lastIndex = gamesCount - this.props.gamesCount;
-      }
-
-      for(let i = 1; i <= lastIndex; i++) {
-        await this.fetchGame(i);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async fetchConfig(configId) {
-    const { contract } = this.props;
-
-    try {
-      const config = await contract.methods.GameConfigurations(configId).call();
-      this.props.fetchGameConfig(config);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async fetchConfigs() {
-    const { contract } = this.props;
-
-    try {
-      const { configurationsCount } = await contract.methods.getConfigurationsCount().call();
-      for(let i = configurationsCount-1; i >= 0; i--) {
-        await this.fetchConfig(i);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    // if (window.location.pathname.includes('/game/')) {
+    //   const _gameId = window.location.pathname.match(/\/game\/(\d+)/)[1];
+    //   await this.fetchGame(_gameId);
+    // }
   }
 
   render() {
@@ -128,28 +73,87 @@ class AppComponent extends React.Component {
         <main>
           <Header/>
           <Container fluid={true}>
-            <Row className="mt-3">
-              <Col md="2">
-                {
-                  this.props.accounts[0] ?
-                    <Actions updateBalance={this.fetchAccountBalance.bind(this)}/>
-                    : ''
-                }
-              </Col>
-              <Col md="8">
-                <Route exact path="/" component={Games}/>
-                <Route exact path="/game/:gameId" component={Game}/>
-              </Col>
-              <Col md="2">
-                {
-                  this.props.contract ?
-                    <Events
-                      updateConfigs={this.fetchConfigs.bind(this)}
-                      updateGame={this.fetchGame.bind(this)}/>
-                    : ''
-                }
-              </Col>
-            </Row>
+            {
+              this.props.accounts.length && this.props.contract ?
+                (
+                  <Row className="mt-3">
+                    {
+                      // Owner access
+                      this.props.isOwner ?
+                        <Col xs="12">
+                          <Actions/>
+                        </Col> : ''
+                    }
+                    <Col sm="8" lg="9">
+                      <Route exact path="/" component={Games}/>
+                      <Route path="/game/:gameId" component={Game}/>
+                    </Col>
+                    <Col sm="4" lg="3">
+                      <section className="mb-4">
+                        <h5>Statistics</h5>
+                        <ul className="list-unstyled">
+                          <li>
+                            <small className="text-muted">
+                              Current block 2141
+                            </small>
+                            <hr/>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Contract address
+                            </small>
+                            <br/>
+                            <small className="text-primary">
+                              {getShortAddress(this.props.contract.options.address)}
+                            </small>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Contract owner
+                            </small>
+                            <br/>
+                            <small className="text-primary">
+                              {getShortAddress(this.props.owner)}
+                            </small>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Owner reward 3%
+                            </small>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Total games {this.props.gamesCount}
+                            </small>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Total winners N/a
+                            </small>
+                          </li>
+                          <li>
+                            <small className="text-muted">
+                              Total fund N/a ETH
+                            </small>
+                          </li>
+                        </ul>
+                        <hr/>
+                      </section>
+                      {this.props.configs.length ? <Events/> : ''}
+                    </Col>
+                  </Row>
+                ) :
+                (
+                  <div className="mt-5 text-center">
+                    <h3 className="lead">Loading application...</h3>
+                    <p className="text-muted">
+                      If you see this text always you will need
+                      install the MetaMask extension for your Chrome
+                      or Firefox browser. See you later :)
+                    </p>
+                  </div>
+                )
+            }
           </Container>
         </main>
       </Router>
@@ -160,12 +164,22 @@ class AppComponent extends React.Component {
 AppComponent.propTypes = {
   // Props
   web3: PropTypes.object,
+  owner: PropTypes.string,
+  isOwner: PropTypes.bool,
   contract: PropTypes.object,
   accounts: PropTypes.array,
   gamesCount: PropTypes.number,
   configs: PropTypes.array,
   // Actions
+  initWeb3: PropTypes.func.isRequired,
+  initAccounts: PropTypes.func.isRequired,
+  initContract: PropTypes.func.isRequired,
+  fetchOwner: PropTypes.func.isRequired,
+  fetchBalance: PropTypes.func.isRequired,
+
   setWeb3: PropTypes.func.isRequired,
+  setOwner: PropTypes.func.isRequired,
+  setIsOwner: PropTypes.func.isRequired,
   setContract: PropTypes.func.isRequired,
   setAccounts: PropTypes.func.isRequired,
   fetchGame: PropTypes.func.isRequired,
@@ -176,12 +190,25 @@ const mapStateToProps = state => ({
   web3: state.blockchain.web3,
   contract: state.blockchain.contract,
   accounts: state.blockchain.accounts,
+  owner: state.blockchain.owner,
+  isOwner: state.blockchain.isOwner,
+
   gamesCount: state.games.data.length,
   configs: state.games.configs
 });
 
 const mapDispatchToProps = dispatch => ({
+  initWeb3: () => dispatch(initWeb3()),
+  initAccounts: () => dispatch(initAccounts()),
+  initContract: () => dispatch(initContract()),
+  fetchBalance: () => dispatch(fetchBalance()),
+  fetchOwner: () => dispatch(fetchOwner()),
+  loadConfigs: () => dispatch(loadConfigs()),
+  loadGames: () => dispatch(loadGames()),
+
   setWeb3: web3 => dispatch(setWeb3(web3)),
+  setOwner: owner => dispatch(setOwner(owner)),
+  setIsOwner: owner => dispatch(setIsOwner(owner)),
   setContract: contract => dispatch(setContract(contract)),
   setAccounts: accounts => dispatch(setAccounts(accounts)),
   setBalance: balance => dispatch(setBalance(balance)),

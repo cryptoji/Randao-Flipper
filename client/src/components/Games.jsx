@@ -4,31 +4,39 @@ import PropTypes from 'prop-types';
 import {
   Container, Row, Col
 } from 'reactstrap';
-import GameCard from './GameCard';
+import GameCard from './+game/Card';
 
-const GamesList = ({ games }) => (
-  <section>
-    <Container>
-      <h5>Games</h5>
+class GamesList extends React.Component {
+  constructor(props) {
+    super(props);
+  }
 
-      {
-        games.length ?
-          (
-            <Row>
-              {
-                games.map((game, index) => (
-                  <Col key={index} md="4">
-                    <GameCard game={game}/>
-                  </Col>
-                )).reverse()
-              }
-            </Row>
-          )
-          : <p className="text-muted">Not created any games yet</p>
-      }
-    </Container>
-  </section>
-);
+  render() {
+    return (
+      <section>
+        <h5>Games</h5>
+        {
+          this.props.games.length ?
+            (
+              <Row>
+                {
+                  this.props.games
+                    .sort((a, b) => a.id - b.id)
+                    .map((game, index) => (
+                      <Col key={index} xs="12" sm="6" lg="3">
+                        <GameCard game={game}/>
+                      </Col>
+                    ))
+                    .reverse()
+                }
+              </Row>
+            )
+            : <p className="text-muted">Not created any games yet</p>
+        }
+      </section>
+    );
+  }
+}
 
 GamesList.propTypes = {
   games: PropTypes.array.isRequired

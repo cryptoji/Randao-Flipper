@@ -25,7 +25,7 @@ const GameCard = ({ game }) => {
       statusText = <span className="text-success">Waiting participants</span>;
       actionButton = <Link to={`/game/${game.id}`}><Button color="success">Play</Button></Link>;
     } else {
-      statusText = <span className="text-success">Reveal numbers</span>;
+      statusText = <span className="text-info">Reveal numbers</span>;
     }
   }
 
@@ -39,20 +39,22 @@ const GameCard = ({ game }) => {
             </strong>
           </CardTitle>
           <CardSubtitle>
-            <span id="ParticipantsNumberTooltip">
-              <i className="fa fa-users"/>
-              {' ' + game.commitCounter} of {game.config.participantsNumber}
-            </span>
-            &ensp;/&ensp;
-            <i className="fa fa-trophy"/>
-            {' ' + game.config.winnersNumber}
-            &ensp;/&ensp;
-            <i className="fab fa-ethereum"/>
-            {' ' + game.deposit * game.config.participantsNumber}
+            {statusText}<br/>
+            {
+              game.ownerInvolved ? (
+                <span className="text-info">
+                  Owner involved
+                  <br/>
+                </span>
+              ) : ''
+            }
           </CardSubtitle>
           <CardText>
-            {statusText}<br/>
+            Participants <i className="fa fa-users"/> {game.commitCounter}/{game.config.participantsNumber}<br/>
+            Winners <i className="fa fa-trophy"/> {game.config.winnersNumber}<br/>
             Deadline <i className="fa fa-stopwatch"/> {game.deadline} block<br/>
+            Total win <i className="fab fa-ethereum"/>
+            {' ' + game.deposit * game.config.participantsNumber}<br/>
             Deposit <i className="fab fa-ethereum"/> {game.deposit}<br/>
           </CardText>
           {actionButton}

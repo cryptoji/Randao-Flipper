@@ -2,7 +2,9 @@ import {
   SET_WEB3,
   SET_CONTRACT,
   SET_ACCOUNTS,
-  SET_BALANCE
+  SET_BALANCE,
+  SET_OWNER,
+  SET_IS_OWNER
 } from '../actions/blockchain';
 
 const initialState = {
@@ -10,6 +12,8 @@ const initialState = {
   contract: null,
   accounts: [],
   balance: 0,
+  owner: null,
+  isOwner: false, // true if current account is owner
   network: {
     block: {
       number: 0,
@@ -40,6 +44,16 @@ export const blockchain = (state = initialState, action) => {
       return {
         ...state,
         balance: action.payload
+      };
+    case SET_OWNER:
+      return {
+        ...state,
+        owner: action.payload
+      };
+    case SET_IS_OWNER:
+      return {
+        ...state,
+        isOwner: true
       };
     default:
       return state;

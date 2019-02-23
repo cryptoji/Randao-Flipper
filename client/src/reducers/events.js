@@ -4,6 +4,7 @@ import {
 } from '../actions/events';
 
 const initialState = {
+  data: [],
   games: [],
   configs: [],
   commits: [],
@@ -17,12 +18,12 @@ export const events = (state = initialState, action) => {
     case FETCH_GAME_CREATED_EVENT:
       return {
         ...state,
-        games: state.games.concat(action.payload)
+        data: state.data.concat(action.payload)
       };
     case FETCH_CONFIG_CREATED_EVENT:
       return {
         ...state,
-        configs: state.configs.concat(action.payload)
+        data: state.data.concat(action.payload)
       };
     default:
       return state;

@@ -1,12 +1,13 @@
 import {
   FETCH_GAME,
+  FETCH_GAME_DATA,
   FETCH_GAME_CONFIG
 } from '../actions/games';
 
 // Initial state
 const initialState = {
-  data: [],
-  configs: []
+  data: [], // all games list
+  configs: [] // games configs
 };
 
 // Games reducer
@@ -22,7 +23,9 @@ export const games = (state = initialState, action) => {
     case FETCH_GAME_CONFIG:
       return {
         ...state,
-        configs: state.configs.concat(action.payload)
+        configs: state.configs
+          .filter(c => c.id !== action.payload.id)
+          .concat(action.payload)
       };
     default:
       return state;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import {
   Card,
@@ -10,18 +11,18 @@ import {
 } from 'reactstrap';
 import { Link } from 'react-router-dom';
 
-const GameCard = ({ game }) => {
+const GameCardComponent = ({ game, blockNumber }) => {
   let statusText;
   let actionButton = <Link to={`/game/${game.id}`}><Button color="secondary">View</Button></Link>;
 
-  if (game.completed) {
+  if (game.completed || blockNumber > game.deadline) {
     statusText = <span className="text-muted">Game completed</span>;
   }
-  else if (game.closed) {
-    statusText = <span className="text-danger">Game closed</span>;
+  else if (game.closed || blockNumber > game.deadline) {
+    statusText = <span className="text-muted">Game closed</span>;
   }
   else {
-    if (game.commitCounter < game.config.participantsNumber) {
+    if (parseInt(game.commitCounter) < parseInt(game.config.participantsNumber)) {
       statusText = <span className="text-success">Waiting participants</span>;
       actionButton = <Link to={`/game/${game.id}`}><Button color="success">Play</Button></Link>;
     } else {
@@ -54,7 +55,10 @@ const GameCard = ({ game }) => {
             Winners <i className="fa fa-trophy"/> {game.config.winnersNumber}<br/>
             Deadline <i className="fa fa-stopwatch"/> {game.deadline} block<br/>
             Total win <i className="fab fa-ethereum"/>
-            {' ' + game.deposit * game.config.participantsNumber}<br/>
+            {' ' + (
+              (game.deposit * game.config.participantsNumber) -
+              (game.deposit * game.config.winnersNumber)
+            )}<br/>
             Deposit <i className="fab fa-ethereum"/> {game.deposit}<br/>
           </CardText>
           {actionButton}
@@ -64,8 +68,17 @@ const GameCard = ({ game }) => {
   );
 };
 
-GameCard.propTypes = {
-  game: PropTypes.object.isRequired
+GameCardComponent.propTypes = {
+  game: PropTypes.object.isRequired,
+  blockNumber: PropTypes.number.isRequired
 };
+
+const mapStateToProps = state => ({
+  blockNumber: state.blockchain.network.blockNumber
+});
+
+const GameCard = connect(
+  mapStateToProps, null
+)(GameCardComponent);
 
 export default GameCard;

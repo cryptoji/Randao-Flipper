@@ -6,17 +6,17 @@ import {
   ListGroupItem
 } from 'reactstrap';
 
-const GameParticipantsList = ({ account, participants }) => (
-  <div>
-    <h5>Participants</h5>
+const GameAddressesList = ({ account, addresses, title }) => (
+  <div className="mb-3">
+    <h5>{title}</h5>
     {
-      participants.length ?
+      addresses.length ?
         (
           <ListGroup>
             {
-              participants.map((address, index) => (
+              addresses.map((address, index) => (
                 <ListGroupItem
-                  active={account === address}
+                  active={false}
                   key={index}>
                   <small>{address}</small>
                 </ListGroupItem>
@@ -26,15 +26,16 @@ const GameParticipantsList = ({ account, participants }) => (
         ) :
         (
           <p className="text-muted">
-            There are no participants yet. Be the first!
+            There are no addresses yet. Be the first!
           </p>
         )
     }
   </div>
 );
 
-GameParticipantsList.propTypes = {
-  participants: PropTypes.array.isRequired,
+GameAddressesList.propTypes = {
+  title: PropTypes.string.isRequired,
+  addresses: PropTypes.array.isRequired,
   account: PropTypes.string.isRequired
 }
 
@@ -44,9 +45,9 @@ const mapStateToProps = state => ({
 
 // const mapDispatchToProps = dispatch => ({});
 
-const GameParticipants = connect(
+const GameAddresses = connect(
   mapStateToProps
   //mapDispatchToProps
-)(GameParticipantsList);
+)(GameAddressesList);
 
-export default GameParticipants;
+export default GameAddresses;

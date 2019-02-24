@@ -1,13 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
   Row,
   Col
 } from 'reactstrap';
 
-import GameParticipants from './+game/Participants';
+import GameAddresses from './+game/Addresses';
 import GameActions from './+game/Actions';
 import GameDetails from './+game/Details';
 
@@ -27,11 +26,21 @@ class GamePage extends React.Component {
                 <Col className="mb-3" md="6" lg="4" xl="3">
                   <GameDetails game={game}/>
                 </Col>
-                <Col className="" md="6" lg="4">
-                  <GameActions/>
+                <Col md="6" lg="4" xl="5">
+                  {
+                    game.completed ?
+                      (
+                        <GameAddresses
+                          title="Winners"
+                          addresses={game.winners}/>
+                      ) : ''
+                  }
+                  <GameAddresses
+                    title="Participants"
+                    addresses={game.participants}/>
                 </Col>
-                <Col md="12" lg="4" xl="5">
-                  <GameParticipants participants={game.participants}/>
+                <Col className="" md="12" lg="4">
+                  <GameActions game={game}/>
                 </Col>
               </Row>
             )

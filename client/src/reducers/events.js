@@ -4,13 +4,7 @@ import {
 } from '../actions/events';
 
 const initialState = {
-  data: [],
-  games: [],
-  configs: [],
-  commits: [],
-  reveals: [],
-  rewards: [],
-  closures: [] // gameClosed events
+  data: []
 };
 
 export const events = (state = initialState, action) => {

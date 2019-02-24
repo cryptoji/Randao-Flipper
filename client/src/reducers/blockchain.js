@@ -4,7 +4,8 @@ import {
   SET_ACCOUNTS,
   SET_BALANCE,
   SET_OWNER,
-  SET_IS_OWNER
+  SET_IS_OWNER,
+  SET_BLOCK_NUMBER
 } from '../actions/blockchain';
 
 const initialState = {
@@ -15,10 +16,7 @@ const initialState = {
   owner: null,
   isOwner: false, // true if current account is owner
   network: {
-    block: {
-      number: 0,
-      hash: null
-    }
+    blockNumber: 0
   }
 };
 
@@ -54,6 +52,14 @@ export const blockchain = (state = initialState, action) => {
       return {
         ...state,
         isOwner: true
+      };
+    case SET_BLOCK_NUMBER:
+      return {
+        ...state,
+        network: {
+          ...state.network,
+          blockNumber: action.payload
+        }
       };
     default:
       return state;

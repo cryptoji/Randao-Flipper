@@ -1,13 +1,18 @@
 import {
   FETCH_GAME,
-  FETCH_GAME_DATA,
-  FETCH_GAME_CONFIG
+  FETCH_GAME_CONFIG,
+  SET_OWNER_REWARD,
+  SET_TOTAL_WINNERS,
+  SET_TOTAL_FUND
 } from '../actions/games';
 
 // Initial state
 const initialState = {
   data: [], // all games list
-  configs: [] // games configs
+  configs: [], // games configs,
+  ownerReward: '0',
+  totalWinners: '0',
+  totalFund: '0'
 };
 
 // Games reducer
@@ -27,9 +32,24 @@ export const games = (state = initialState, action) => {
           .filter(c => c.id !== action.payload.id)
           .concat(action.payload)
       };
+    case SET_OWNER_REWARD:
+      return {
+        ...state,
+        ownerReward: action.payload
+      };
+    case SET_TOTAL_WINNERS:
+      return {
+        ...state,
+        totalWinners: action.payload
+      };
+    case SET_TOTAL_FUND:
+      return {
+        ...state,
+        totalFund: action.payload
+      };
     default:
       return state;
   }
-}
+};
 
 export default games;

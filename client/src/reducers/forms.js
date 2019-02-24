@@ -1,11 +1,10 @@
 import {
-  CREATE_GAME_FORM_UPDATE,
-  CREATE_GAME_OWNER_INVOLVED_UPDATE,
-  CREATE_CONFIG_FORM_UPDATE
+  UPDATE_FORM_FIELD
 } from '../actions/forms';
 
 const initialState = {
   createGame: {
+    _isLoading: false,
     _errors: [],
     configId: 0,
     secret: 0,
@@ -13,37 +12,32 @@ const initialState = {
     ownerInvolved: false
   },
   createConfig: {
+    _isLoading: false,
     _errors: [],
     participants: 0,
     winners: 0,
     deadline: 0
+  },
+  commitNumber: {
+    _isLoading: false,
+    _errors: [],
+    secret: 0
+  },
+  revealNumber: {
+    _isLoading: false,
+    _errors: [],
+    number: 0
   }
 };
 
 export const forms = (state = initialState, action) => {
   switch (action.type) {
-    case CREATE_GAME_FORM_UPDATE:
+    case UPDATE_FORM_FIELD:
       return {
         ...state,
-        createGame: {
-          ...state.createGame,
-          [action.payload.field]: action.payload.value
-        }
-      };
-    case CREATE_GAME_OWNER_INVOLVED_UPDATE:
-      return {
-        ...state,
-        createGame: {
-          ...state.createGame,
-          ownerInvolved: !state.createGame.ownerInvolved
-        }
-      };
-    case CREATE_CONFIG_FORM_UPDATE:
-      return {
-        ...state,
-        createConfig: {
-          ...state.createConfig,
-          [action.payload.field]: action.payload.value
+        [action.payload.formId]: {
+          ...state[action.payload.formId],
+          [action.payload.name]: action.payload.value
         }
       };
     default:

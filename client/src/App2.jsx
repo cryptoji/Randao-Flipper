@@ -18,8 +18,10 @@ import {
   initWeb3,
   fetchOwner,
   fetchBalance,
+  fetchNetworkInfo
 } from './actions/blockchain';
 import {
+  fetchContractStatistics,
   loadConfigs,
   loadGames
 } from './actions/games';
@@ -37,7 +39,9 @@ class AppComponent extends React.Component {
       fetchOwner,
       fetchBalance,
       loadConfigs,
-      loadGames
+      loadGames,
+      fetchNetworkInfo,
+      fetchContractStatistics
     } = this.props;
 
     await initWeb3();
@@ -47,6 +51,9 @@ class AppComponent extends React.Component {
 
     await loadConfigs();
     await loadGames();
+
+    await fetchNetworkInfo();
+    await fetchContractStatistics();
 
     if (this.props.accounts.length) {
       await fetchBalance();
@@ -107,6 +114,7 @@ AppComponent.propTypes = {
   initContract: PropTypes.func.isRequired,
   fetchOwner: PropTypes.func.isRequired,
   fetchBalance: PropTypes.func.isRequired,
+  fetchNetworkInfo: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ({
@@ -121,7 +129,9 @@ const mapDispatchToProps = dispatch => ({
   fetchBalance: () => dispatch(fetchBalance()),
   fetchOwner: () => dispatch(fetchOwner()),
   loadConfigs: () => dispatch(loadConfigs()),
-  loadGames: () => dispatch(loadGames())
+  loadGames: () => dispatch(loadGames()),
+  fetchNetworkInfo: () => dispatch(fetchNetworkInfo()),
+  fetchContractStatistics: () => dispatch(fetchContractStatistics())
 });
 
 const App = connect(

@@ -18,7 +18,7 @@ class MenuContainer extends React.Component {
   render() {
     return (
       <section className="mb-3">
-        <OwnerMenu/>
+        {this.props.isOwner ? <OwnerMenu/> : ''}
       </section>
     );
   }
@@ -26,7 +26,9 @@ class MenuContainer extends React.Component {
 
 MenuContainer.propTypes = {};
 
-const mapStateToProps = state => ({});
+const mapStateToProps = state => ({
+  isOwner: state.blockchain.owner === state.blockchain.accounts[0]
+});
 
 const mapDispatchToProps = dispatch => ({});
 

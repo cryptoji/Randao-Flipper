@@ -14,52 +14,88 @@ export const fetchConfigCreatedEvent = (payload) => ({
 });
 
 export const handleGameCreated = (event, updateLists) => {
-  return (dispatch) => {
-    // console.log(event)
-    dispatch(
-      fetchGameCreatedEvent(event)
-    );
-
+  return async(dispatch) => {
     if (updateLists) {
-      console.log(event.data.id)
-      dispatch(loadGame(event.data.id));
+      await dispatch(loadGame(event.data.id));
     }
+
+    await dispatch(fetchGameCreatedEvent(event));
   };
 };
 
 export const handleConfigCreated = (event, updateLists) => {
-  return (dispatch) => {
-    // console.log(event);
-    dispatch(
-      fetchConfigCreatedEvent(event)
-    );
-
+  return async(dispatch) => {
     if (updateLists) {
-      dispatch(loadConfigs());
+      await dispatch(loadConfigs());
     }
+
+    await dispatch(fetchConfigCreatedEvent(event));
   };
 };
 
-export const handleEvent = (_event, updateLists = false) => {
-  return async(dispatch, state) => {
-    const { configs } = state().games;
+export const handleNumberCommited = (event, updateLists) => {
+  return async(dispatch) => {
+    if (updateLists) {
+      await dispatch(loadGame(event.data.gameId));
+    }
 
+    await dispatch(fetchConfigCreatedEvent(event));
+  };
+};
+
+export const handleNumberRevealed = (event, updateLists) => {
+  return async(dispatch) => {
+    if (updateLists) {
+      await dispatch(loadGame(event.data.gameId));
+    }
+
+    await dispatch(fetchConfigCreatedEvent(event));
+  };
+};
+
+export const handleGameCompleted = (event, updateLists) => {
+  return async(dispatch) => {
+    if (updateLists) {
+      await dispatch(loadGame(event.data.gameId));
+    }
+
+    await dispatch(fetchConfigCreatedEvent(event));
+  };
+};
+
+export const handleRewardSent = (event) => {
+  return async(dispatch) => {
+    await dispatch(fetchConfigCreatedEvent(event));
+  };
+};
+
+
+
+export const handleEvent = (_event, updateLists = false) => {
+  return async(dispatch) => {
     const type = _event.event;
     const data = _event.returnValues;
     const id = _event.id;
     const event = { id, type, data };
-    const config = configs.find(c => c.id + '' === data.id);
 
     switch (type) {
       case 'GameConfigurationCreated':
-        dispatch(
-          handleConfigCreated({...event, config}, updateLists)
-        );
+        dispatch(handleConfigCreated(event, updateLists));
         break;
       case 'GameCreated':
-        dispatch(
-          handleGameCreated(event, updateLists)
-        );
+        dispatch(handleGameCreated(event, updateLists));
+        break;
+      case 'NumberCommited':
+        dispatch(handleNumberCommited(event, updateLists));
+        break;
+      case 'NumberRevealed':
+        dispatch(handleNumberRevealed(event, updateLists));
+        break;
+      case 'GameCompleted':
+        dispatch(handleGameCompleted(event, updateLists));
+        break;
+      case 'RewardSent':
+        dispatch(handleRewardSent(event));
         break;
       default:
         return;

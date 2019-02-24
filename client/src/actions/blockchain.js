@@ -8,6 +8,7 @@ export const SET_ACCOUNTS = 'SET_ACCOUNTS';
 export const SET_BALANCE = 'SET_BALANCE';
 export const SET_OWNER = 'SET_OWNER';
 export const SET_IS_OWNER = 'SET_IS_OWNER';
+export const SET_BLOCK_NUMBER = 'SET_BLOCK_NUMBER';
 
 /*
  * Web3 actions
@@ -125,6 +126,27 @@ export const fetchOwner = () => {
       if (accounts[0] === owner) {
         dispatch(setIsOwner());
       }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+};
+
+/*
+ * Network actions
+ */
+export const setBlockNumber = payload => ({
+  type: SET_BLOCK_NUMBER,
+  payload
+});
+
+export const fetchNetworkInfo = () => {
+  return async(dispatch, state) => {
+    const { web3 } = state().blockchain;
+
+    try {
+      const blockNumber = await web3.eth.getBlockNumber();
+      dispatch(setBlockNumber(blockNumber));
     } catch (e) {
       console.error(e);
     }

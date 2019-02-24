@@ -14,10 +14,8 @@ import {
   Button
 } from 'reactstrap';
 import { toggleModal } from '../../actions/modals';
-import {
-  handleConfigFieldChange,
-  handleCreateConfig
-} from '../../actions/forms';
+import { handleCreateConfig } from '../../actions/games';
+import { updateFormField } from '../../actions/forms';
 
 const CreateConfig = (props) => {
   const {
@@ -78,7 +76,10 @@ const CreateConfig = (props) => {
       <ModalFooter>
         <Button
           color="success"
-          onClick={handleCreate}>
+          onClick={(event) => {
+            event.preventDefault();
+            handleCreate();
+          }}>
           Create config
         </Button>
       </ModalFooter>
@@ -89,6 +90,7 @@ const CreateConfig = (props) => {
 CreateConfig.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   form: PropTypes.object.isRequired,
+  toggleModal: PropTypes.func.isRequired,
   handleFieldChange: PropTypes.func.isRequired,
   handleCreate: PropTypes.func.isRequired
 };
@@ -100,7 +102,7 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
   toggleModal: modalId => dispatch(toggleModal(modalId)),
-  handleFieldChange: event => dispatch(handleConfigFieldChange(event)),
+  handleFieldChange: event => dispatch(updateFormField('createConfig', event)),
   handleCreate: () => dispatch(handleCreateConfig())
 });
 

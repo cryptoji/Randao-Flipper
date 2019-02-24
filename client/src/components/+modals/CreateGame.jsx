@@ -12,13 +12,11 @@ import {
   Input,
   Button
 } from 'reactstrap';
-import { getConfigTitle } from '../Menu'
-import {
-  handleGameFieldChange,
-  handleCreateGame,
-  updateOwnerInvolved
-} from '../../actions/forms'
-import { toggleModal } from '../../actions/modals'
+import { getConfigTitle } from '../Menu';
+
+import { handleCreateGame } from '../../actions/games';
+import { updateFormField } from '../../actions/forms';
+import { toggleModal } from '../../actions/modals';
 
 const CreateGame = (props) => {
   const {
@@ -26,8 +24,7 @@ const CreateGame = (props) => {
     gameConfigs,
     toggleModal,
     form,
-    handleOwnerInvolved,
-    handleFieldChange,
+    updateFormField,
     handleCreate
   } = props;
   return (
@@ -48,7 +45,7 @@ const CreateGame = (props) => {
               id="gameConfig"
               placeholder="Number of participants"
               value={form.configId}
-              onChange={handleFieldChange}>
+              onChange={updateFormField}>
               <option disabled>Select game configuration</option>
               {
                 gameConfigs.map((config, index) => (
@@ -68,7 +65,7 @@ const CreateGame = (props) => {
               id="depositValue"
               placeholder="Set a deposit"
               value={form.deposit}
-              onChange={handleFieldChange}/>
+              onChange={updateFormField}/>
           </FormGroup>
 
           {
@@ -81,7 +78,7 @@ const CreateGame = (props) => {
                   id="gameSecret"
                   placeholder="Set a secret number"
                   value={form.secret}
-                  onChange={handleFieldChange}/>
+                  onChange={updateFormField}/>
               </FormGroup> : ''
           }
 
@@ -93,7 +90,7 @@ const CreateGame = (props) => {
                 id="ownerInvolved"
                 placeholder="Set a deposit"
                 checked={form.ownerInvolved}
-                onChange={handleOwnerInvolved}/>{' '}
+                onChange={updateFormField}/>{' '}
               Owner involved
             </Label>
           </FormGroup>
@@ -103,7 +100,10 @@ const CreateGame = (props) => {
       <ModalFooter>
         <Button
           color="success"
-          onClick={handleCreate}>
+          onClick={(event) => {
+            event.preventDefault();
+            handleCreate();
+          }}>
           Create game
         </Button>
       </ModalFooter>
@@ -115,9 +115,8 @@ CreateGame.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   form: PropTypes.object.isRequired,
   gameConfigs: PropTypes.array.isRequired,
-  handleFieldChange: PropTypes.func.isRequired,
-  handleCreate: PropTypes.func.isRequired,
-  handleOwnerInvolved: PropTypes.func.isRequired
+  updateFormField: PropTypes.func.isRequired,
+  handleCreate: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ({
@@ -128,9 +127,8 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
   toggleModal: modalId => dispatch(toggleModal(modalId)),
-  handleFieldChange: event => dispatch(handleGameFieldChange(event)),
-  handleCreate: () => dispatch(handleCreateGame()),
-  handleOwnerInvolved: () => dispatch(updateOwnerInvolved())
+  updateFormField: event => dispatch(updateFormField('createGame', event)),
+  handleCreate: () => dispatch(handleCreateGame())
 });
 
 const CreateGameModal = connect(

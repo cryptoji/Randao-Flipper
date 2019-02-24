@@ -46,7 +46,7 @@ MenuOwnerComponent.propTypes = {
 
 const mapStateToProps = state => ({
   modals: state.modals,
-  gameConfigsLength: state.games.data.length
+  gameConfigsLength: state.games.configs.length
 });
 
 const mapDispatchToProps = dispatch => ({

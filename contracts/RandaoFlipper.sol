@@ -2,6 +2,10 @@ pragma solidity ^0.5.0;
 
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
+//contract FlipperGames {}
+//contract FlipperConfigs {}
+//contract FlipperRewards {}
+
 contract RandaoFlipper is Ownable {
 
   // GameCard configuration
@@ -207,7 +211,7 @@ contract RandaoFlipper is Ownable {
     emit NumberCommited(gameId, msg.sender);
   }
 
-  event NumberRevealed(uint gameId);
+  event NumberRevealed(uint gameId, address participant);
 
   function revealNumber(uint gameId, uint number) external {
     GameSession storage game = GameSessions[gameId];
@@ -226,7 +230,7 @@ contract RandaoFlipper is Ownable {
     game.random += number;
     game._participants[msg.sender].revealed = true;
 
-    emit NumberRevealed(gameId);
+    emit NumberRevealed(gameId, msg.sender);
   }
 
   // -------------------------------
@@ -312,7 +316,7 @@ contract RandaoFlipper is Ownable {
   // -----------------------------
   // After game is completed
   // users can get their rewards
-  event RewardSent(uint gameId, address receiver);
+  event RewardSent(uint gameId, address receiver, uint reward);
 
   function getReward(uint gameId) external {
     GameSession storage game = GameSessions[gameId];
@@ -334,6 +338,6 @@ contract RandaoFlipper is Ownable {
     participant.rewarded = true;
     totalFund = totalFund + reward;
 
-    emit RewardSent(gameId, msg.sender);
+    emit RewardSent(gameId, msg.sender, reward);
   }
 }

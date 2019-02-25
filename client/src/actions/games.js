@@ -4,6 +4,7 @@ import { fetchBalance } from './blockchain';
 // Action types
 export const FETCH_GAME = 'FETCH_GAME';
 export const FETCH_GAME_CONFIG = 'FETCH_GAME_CONFIG';
+export const FETCH_PARTICIPANT_DATA = 'FETCH_PARTICIPANT_DATA';
 export const SET_OWNER_REWARD = 'SET_OWNER_REWARD';
 export const SET_TOTAL_WINNERS = 'SET_TOTAL_WINNERS';
 export const SET_TOTAL_FUND = 'SET_TOTAL_FUND';
@@ -18,6 +19,22 @@ export const fetchGameConfig = (payload) => ({
   type: FETCH_GAME_CONFIG,
   payload
 });
+
+export const fetchParticipantData = (payload) => ({
+  type: FETCH_PARTICIPANT_DATA,
+  payload
+})
+
+export const loadParticipantData = (gameId) => {
+  return async(dispatch, state) => {
+    const { contract, accounts } = state().blockchain;
+    const participantData = await contract.methods.getGameParticipant(
+      gameId, accounts[0]
+    ).call();
+    console.log(participantData);
+    dispatch(fetchParticipantData({ gameId, data: participantData }));
+  };
+};
 
 export const loadGame = (gameId) => {
   return async(dispatch, state) => {
@@ -194,6 +211,7 @@ export const completeGame = (gameId) => {
     try {
       await contract.methods.completeGame(gameId).send({ from: accounts[0] });
       await dispatch(loadGame(gameId));
+      await dispatch(fetchContractStatistics());
     } catch (e) {
       console.error(e);
     }
@@ -246,6 +264,7 @@ export const getReward = (gameId) => {
     try {
       await contract.methods.getReward(gameId).send({ from: accounts[0] });
       await dispatch(fetchBalance());
+      await dispatch(fetchContractStatistics());
       alert('You got reward');
     } catch (e) {
       console.error(e);

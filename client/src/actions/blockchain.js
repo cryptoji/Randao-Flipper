@@ -50,6 +50,9 @@ export const initContract = () => {
         deployedNetwork && deployedNetwork.address
       );
 
+      const balance = await web3.eth.getBalance(contract.options.address);
+      console.log(balance)
+
       dispatch(setContract(contract));
     } catch (e) {
       console.error(e);

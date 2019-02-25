@@ -7,8 +7,8 @@ const GameDetailsComponent = ({ game, blockNumber }) => (
     <h1>Game {game.id}</h1>
 
     <p>
-      {game.completed && blockNumber > game.deadline ? <strong className="text-success">Game completed</strong> : ''}
-      {game.closed && blockNumber > game.deadline ? <strong className="text-danger">Game closed</strong> : ''}
+      {game.completed && blockNumber > game.deadline ? <strong className="text-muted">Game completed</strong> : ''}
+      {game.closed && blockNumber > game.deadline ? <strong className="text-muted">Game closed</strong> : ''}
       {
         !game.completed && !game.closed && blockNumber > game.deadline ?
           <strong className="text-success">The game is out</strong> : ''

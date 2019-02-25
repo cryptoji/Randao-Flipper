@@ -84,7 +84,7 @@ class EventsList extends React.Component {
                     <div>
                       <small>
                         <span className="text-primary">
-                          {getShortAddress(event.data.participant, 4)}
+                          {getShortAddress(event.data.participant)}
                         </span> joined to{' '}
                         <Link to={`/game/${event.data.gameId}`}>
                           Game {event.data.gameId}
@@ -99,7 +99,7 @@ class EventsList extends React.Component {
                     <div>
                       <small>
                         <span className="text-primary">
-                          {getShortAddress(event.data.participant, 4)}
+                          {getShortAddress(event.data.participant)}
                         </span> reveal number in{' '}
                         <Link to={`/game/${event.data.gameId}`}>
                           Game {event.data.gameId}
@@ -126,7 +126,7 @@ class EventsList extends React.Component {
                     <div>
                       <small>
                         <span className="text-primary">
-                          {getShortAddress(event.data.receiver, 4)}
+                          {getShortAddress(event.data.receiver)}
                         </span>
                         {' '}got{' '}
                         {this.props.web3.utils.fromWei(

@@ -8,6 +8,14 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract RandaoFlipper is Ownable {
 
+  // Owner payable address
+  // sets in contract constructor
+  address payable public ownerPayable;
+
+  constructor() public {
+    ownerPayable = msg.sender;
+  }
+
   // GameCard configuration
   struct GameConfiguration {
     uint participantsNumber;
@@ -141,6 +149,21 @@ contract RandaoFlipper is Ownable {
       game.closed,
       game.participants,
       game.winners
+    );
+  }
+
+  function getGameParticipant(uint gameId, address _participant) external view returns (
+    bytes32 secret,
+    bool revealed,
+    bool commited,
+    bool rewarded
+  ) {
+    GameParticipant memory participant = GameSessions[gameId]._participants[_participant];
+    return (
+      participant.secret,
+      participant.revealed,
+      participant.commited,
+      participant.rewarded
     );
   }
 
@@ -317,6 +340,7 @@ contract RandaoFlipper is Ownable {
   // After game is completed
   // users can get their rewards
   event RewardSent(uint gameId, address receiver, uint reward);
+  event RewardSentOwner(uint gameId, uint reward);
 
   function getReward(uint gameId) external {
     GameSession storage game = GameSessions[gameId];
@@ -328,10 +352,18 @@ contract RandaoFlipper is Ownable {
 
     // Send reward
     uint prizePool = (game.deposit * game.participants.length);
-    if(game.ownerInvolved) { prizePool = (game.deposit * game.participants.length - 1); }
+    if(game.ownerInvolved) { prizePool = (game.deposit * (game.participants.length - 1)); }
 
-    uint reward = prizePool / game.winners.length;
-    if(game.closed) { reward = game.deposit; }
+    uint reward = (prizePool / game.winners.length);
+    if(game.closed) {
+      reward = game.deposit;
+    } else {
+      uint ownerRewardValue = reward / 100 * ownerReward;
+      reward = reward - ownerRewardValue;
+
+      require(ownerPayable.send(ownerRewardValue), "The contract cannot send reward to owner");
+      emit RewardSentOwner(gameId, ownerRewardValue);
+    }
 
     require(msg.sender.send(reward), "The contract cannot send reward to receiver");
 

@@ -1,7 +1,6 @@
 import {
   FETCH_GAME,
   FETCH_GAME_CONFIG,
-  FETCH_PARTICIPANT_DATA,
   SET_OWNER_REWARD,
   SET_TOTAL_WINNERS,
   SET_TOTAL_FUND
@@ -25,22 +24,6 @@ export const games = (state = initialState, action) => {
         data: state.data
           .filter(g => g.id !== action.payload.id)
           .concat(action.payload)
-      };
-    case FETCH_PARTICIPANT_DATA:
-      return {
-        ...state,
-        data: state.data
-          .reduce((memo, game) => {
-            if (game.id === action.payload.gameId) {
-              memo.push({
-                ...game,
-                _participant: action.payload.data
-              });
-            } else {
-              memo.push(game);
-            }
-            return memo;
-          }, [])
       };
     case FETCH_GAME_CONFIG:
       return {

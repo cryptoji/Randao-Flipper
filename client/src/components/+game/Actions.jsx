@@ -184,7 +184,8 @@ const mapStateToProps = state => ({
   blockNumber: state.blockchain.network.blockNumber,
   account: state.blockchain.accounts[0],
   commitForm: state.forms.commitNumber,
-  revealForm: state.forms.revealNumber
+  revealForm: state.forms.revealNumber,
+  accountGamesData: state.games.accountGamesData
 });
 
 const mapDispatchToProps = dispatch => ({

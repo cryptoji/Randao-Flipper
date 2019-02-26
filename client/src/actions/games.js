@@ -4,7 +4,6 @@ import { fetchBalance } from './blockchain';
 // Action types
 export const FETCH_GAME = 'FETCH_GAME';
 export const FETCH_GAME_CONFIG = 'FETCH_GAME_CONFIG';
-export const FETCH_PARTICIPANT_DATA = 'FETCH_PARTICIPANT_DATA';
 export const SET_OWNER_REWARD = 'SET_OWNER_REWARD';
 export const SET_TOTAL_WINNERS = 'SET_TOTAL_WINNERS';
 export const SET_TOTAL_FUND = 'SET_TOTAL_FUND';
@@ -20,19 +19,12 @@ export const fetchGameConfig = (payload) => ({
   payload
 });
 
-export const fetchParticipantData = (payload) => ({
-  type: FETCH_PARTICIPANT_DATA,
-  payload
-})
-
-export const loadParticipantData = (gameId) => {
+export const loadAccountGameData = (gameId) => {
   return async(dispatch, state) => {
     const { contract, accounts } = state().blockchain;
-    const participantData = await contract.methods.getGameParticipant(
+    return await contract.methods.getGameParticipant(
       gameId, accounts[0]
     ).call();
-    console.log(participantData);
-    dispatch(fetchParticipantData({ gameId, data: participantData }));
   };
 };
 
@@ -43,16 +35,18 @@ export const loadGame = (gameId) => {
 
     try {
       const game = await contract.methods.getGame(gameId).call();
+      const accountData = await dispatch(loadAccountGameData(gameId));
       const config = configs.find((_, i) => i+'' === game.configId);
 
-      dispatch(
-        fetchGame({
-          ...game,
-          config,
-          deposit: web3.utils.fromWei(game.deposit, 'ether'),
-          _deposit: game.deposit
-        })
-      );
+      const gameModel = {
+        ...game,
+        config,
+        accountData,
+        deposit: web3.utils.fromWei(game.deposit, 'ether'),
+        _deposit: game.deposit
+      };
+
+      await dispatch(fetchGame(gameModel));
     } catch (e) {
       console.error(e);
     }

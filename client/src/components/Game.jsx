@@ -6,8 +6,6 @@ import {
   Col
 } from 'reactstrap';
 
-import { loadParticipantData } from '../actions/games';
-
 import GameAddresses from './+game/Addresses';
 import GameActions from './+game/Actions';
 import GameDetails from './+game/Details';
@@ -15,17 +13,6 @@ import GameDetails from './+game/Details';
 class GamePage extends React.Component {
   constructor(props) {
     super(props);
-  }
-
-  componentWillMount() {
-    this.routerUnListener = this.props.history.listen((location, action) => {
-      console.log(location, action)
-      this.props.loadParticipantData(this.props.match.params.gameId)
-    });
-  }
-
-  componentWillUnmount() {
-    this.routerUnListener();
   }
 
   render() {
@@ -53,6 +40,7 @@ class GamePage extends React.Component {
                     addresses={game.participants}/>
                 </Col>
                 <Col className="" md="12" lg="4">
+                  {JSON.stringify(game.accountData)}
                   <GameActions game={game}/>
                 </Col>
               </Row>
@@ -69,8 +57,7 @@ class GamePage extends React.Component {
 
 GamePage.propTypes = {
   game: PropTypes.object,
-  account: PropTypes.string.isRequired,
-  loadParticipantData: PropTypes.func.isRequired
+  account: PropTypes.string.isRequired
 };
 
 const mapStateToProps = (state, props) => {
@@ -82,7 +69,7 @@ const mapStateToProps = (state, props) => {
 }
 
 const mapDispatchToProps = dispatch => ({
-  loadParticipantData: gameId => dispatch(loadParticipantData(gameId))
+
 });
 
 const Game = connect(

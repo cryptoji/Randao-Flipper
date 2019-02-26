@@ -56,7 +56,7 @@ const StatisticsComponent = (props) => {
         </li>
         <li>
           <small className="text-muted">
-            Total fund {totalFund} ETH
+            Total rewarded {totalFund} ETH
           </small>
         </li>
       </ul>

@@ -22,8 +22,10 @@ import {
 } from './actions/blockchain';
 import {
   fetchContractStatistics,
+  loadAccountGameData,
   loadConfigs,
-  loadGames
+  loadGames,
+  loadGame
 } from './actions/games';
 
 class AppComponent extends React.Component {
@@ -39,9 +41,11 @@ class AppComponent extends React.Component {
       fetchOwner,
       fetchBalance,
       loadConfigs,
+      fetchGame,
       loadGames,
       fetchNetworkInfo,
-      fetchContractStatistics
+      fetchContractStatistics,
+      fecthAccountGameData
     } = this.props;
 
     await initWeb3();
@@ -59,10 +63,11 @@ class AppComponent extends React.Component {
       await fetchBalance();
     }
 
-    // if (window.location.pathname.includes('/game/')) {
-    //   const _gameId = window.location.pathname.match(/\/game\/(\d+)/)[1];
-    //   await this.fetchGame(_gameId);
-    // }
+    if (window.location.pathname.includes('/game/')) {
+      const _gameId = window.location.pathname.match(/\/game\/(\d+)/)[1];
+      await fetchGame(_gameId);
+      await fecthAccountGameData(_gameId);
+    }
   }
 
   render() {
@@ -130,8 +135,10 @@ const mapDispatchToProps = dispatch => ({
   fetchOwner: () => dispatch(fetchOwner()),
   loadConfigs: () => dispatch(loadConfigs()),
   loadGames: () => dispatch(loadGames()),
+  fetchGame: gameId => dispatch(loadGame(gameId)),
   fetchNetworkInfo: () => dispatch(fetchNetworkInfo()),
-  fetchContractStatistics: () => dispatch(fetchContractStatistics())
+  fetchContractStatistics: () => dispatch(fetchContractStatistics()),
+  fecthAccountGameData: gameId => dispatch(loadAccountGameData(gameId))
 });
 
 const App = connect(

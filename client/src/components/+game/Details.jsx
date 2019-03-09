@@ -1,30 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {connect} from 'react-redux'
+import { connect } from 'react-redux';
+
 
 const GameDetailsComponent = ({ game, blockNumber }) => (
   <div>
     <h1>Game {game.id}</h1>
-
-    <p>
-      {game.completed && blockNumber > game.deadline ? <strong className="text-muted">Game completed</strong> : ''}
-      {game.closed && blockNumber > game.deadline ? <strong className="text-muted">Game closed</strong> : ''}
-      {
-        !game.completed && !game.closed && blockNumber > game.deadline ?
-          <strong className="text-success">The game is out</strong> : ''
-      }
-      {
-        (!game.completed && !game.closed) && blockNumber < game.deadline &&
-        game.commitCounter < game.config.participantsNumber ?
-          <strong className="text-success">Waiting participants</strong> : ''
-      }
-      {
-        (!game.completed && !game.closed) && blockNumber < game.deadline &&
-        game.commitCounter === game.config.participantsNumber &&
-        game.revealCounter < game.config.participantsNumber  ?
-          <strong className="text-info">Reveal numbers</strong> : ''
-      }
-    </p>
 
     <ul className="list-unstyled lead">
       <li>

@@ -17,7 +17,7 @@ import {
   completeGame,
   getReward
 } from '../../actions/games';
-
+import GameStatus from './Status';
 
 const GameActionsComponent = (props) => {
   const {
@@ -33,19 +33,38 @@ const GameActionsComponent = (props) => {
     handleRevealFieldChange,
     blockNumber
   } = props;
-  const canCommit = parseInt(game.commitCounter) < parseInt(game.config.participantsNumber);
-  const canReveal = parseInt(game.revealCounter) < parseInt(game.config.participantsNumber);
 
-  const isCommited = game.participants.findIndex(p => p === account) >= 0;
+  // Participant info
+  const { commited, revealed, rewarded } = game.accountData;
 
-  const canCompleteGame =
-    isCommited &&
-    (!game.closed && !game.completed) ||
-    blockNumber < game.deadline;
+  // Game statistics
+  const commitsCounter = parseInt(game.commitCounter);
+  const revealsCounter = parseInt(game.revealCounter);
+  const participantsCounter = parseInt(game.config.participantsNumber);
+
+  // Game permissions
+  const canCommit = commitsCounter < participantsCounter;
+  const canReveal = (revealsCounter < participantsCounter) && !canCommit;
+
+  // Can complete validator
+  const canCompleteGame = (
+    (!game.closed && !game.completed) || blockNumber < game.deadline
+  ) && (!canCommit && !canReveal && commited && revealed);
 
   const addressIsWinner = game.winners.find(winner => winner === account);
 
   if (game.completed) {
+    if (rewarded) {
+      return (
+        <div>
+          <p className="text-success">
+            The game is completed and your address in winners.{' '}
+            You are got reward, good luck in another game session.
+          </p>
+        </div>
+      );
+    }
+
     return addressIsWinner ?
       (
         <div>
@@ -78,9 +97,12 @@ const GameActionsComponent = (props) => {
 
   return (
     <div>
-      <h5>Actions</h5>
+      <GameStatus
+        blockNumber={blockNumber}
+        game={game}/>
+
       {
-        canCommit ?
+        canCommit && !commited ?
           <p className="text-success">
             Commit secret and waiting other participants...
           </p> : ''
@@ -96,7 +118,7 @@ const GameActionsComponent = (props) => {
       <div>
         <Form>
           {
-            !isCommited && canCommit ?
+            canCommit && !commited ?
               <FormGroup>
                 <Label>Commit number</Label>
                 <InputGroup>
@@ -122,7 +144,7 @@ const GameActionsComponent = (props) => {
               </FormGroup> : ''
           }
           {
-            isCommited && canReveal && !canCommit ?
+            canReveal && !revealed ?
               <FormGroup>
                 <Label>Reveal number</Label>
                 <InputGroup>
@@ -148,7 +170,7 @@ const GameActionsComponent = (props) => {
               </FormGroup> : ''
           }
           {
-            canCompleteGame && !canCommit && !canReveal ?
+            canCompleteGame && !canReveal ?
               (
                 <Button
                   color="primary"

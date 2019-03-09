@@ -40,7 +40,6 @@ class GamePage extends React.Component {
                     addresses={game.participants}/>
                 </Col>
                 <Col className="" md="12" lg="4">
-                  {JSON.stringify(game.accountData)}
                   <GameActions game={game}/>
                 </Col>
               </Row>

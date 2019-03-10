@@ -155,3 +155,23 @@ export const fetchNetworkInfo = () => {
     }
   };
 };
+
+export const listenNetworkInfo = () => {
+  return async(dispatch, state) => {
+    const { web3 } = state().blockchain;
+
+    try {
+      const subscription = web3.eth.subscribe('newBlockHeaders');
+
+      subscription.on('data', async(block, error) => {
+        if (!error) {
+          dispatch(setBlockNumber(block.number));
+          return;
+        }
+        console.log(error);
+      })
+    } catch (e) {
+      console.error(e);
+    }
+  };
+};

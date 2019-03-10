@@ -15,6 +15,7 @@ import {
   commitNumber,
   revealNumber,
   completeGame,
+  closeGame,
   getReward
 } from '../../actions/games';
 import GameStatus from './Status';
@@ -28,6 +29,7 @@ const GameActionsComponent = (props) => {
     commitForm,
     revealForm,
     completeGame,
+    closeGame,
     getReward,
     handleCommitFieldChange,
     handleRevealFieldChange,
@@ -50,6 +52,13 @@ const GameActionsComponent = (props) => {
   const canCompleteGame = (
     (!game.closed && !game.completed) || blockNumber < game.deadline
   ) && (!canCommit && !canReveal && commited && revealed);
+
+  // Can close game validator
+  const canCloseGame = (
+    (!game.closed && !game.completed) &&
+    (blockNumber > game.deadline) &&
+    (revealsCounter === 0)
+  );
 
   const addressIsWinner = game.winners.find(winner => winner === account);
   const statusEl = (
@@ -97,9 +106,19 @@ const GameActionsComponent = (props) => {
   if (game.closed) {
     return (
       <div>
-        <p className="text-danger">
-          The game is closed. You can get back your deposit.
+        <p className="text-warning">
+          The game is closed. You can get back your deposit if you did commit.
         </p>
+
+        {
+          commited ? (
+            <Button
+              color="warning"
+              onClick={(_) => getReward(game.id)}>
+              Get back deposit
+            </Button>
+          ) : ''
+        }
       </div>
     );
   }
@@ -109,23 +128,30 @@ const GameActionsComponent = (props) => {
       {statusEl}
 
       {
-        canCommit && !commited ?
-          <p className="text-success">
+        canCommit && !commited && !canCloseGame ?
+          <p className="text-info">
             Commit secret and waiting other participants...
           </p> : ''
       }
 
       {
-        canReveal && !canCommit ?
-          <p className="text-success">
+        canReveal && !canCommit && !canCloseGame ?
+          <p className="text-info">
             Reveal your number and waiting other participants...
+          </p> : ''
+      }
+
+      {
+        canCloseGame ?
+          <p className="text-warning">
+            The game is out, you can close it and get back your deposit.
           </p> : ''
       }
 
       <div>
         <Form>
           {
-            canCommit && !commited ?
+            canCommit && !commited && !canCloseGame ?
               <FormGroup>
                 <Label>Commit number</Label>
                 <InputGroup>
@@ -151,7 +177,7 @@ const GameActionsComponent = (props) => {
               </FormGroup> : ''
           }
           {
-            canReveal && !revealed ?
+            canReveal && !revealed && !canCloseGame ?
               <FormGroup>
                 <Label>Reveal number</Label>
                 <InputGroup>
@@ -177,16 +203,36 @@ const GameActionsComponent = (props) => {
               </FormGroup> : ''
           }
           {
-            canCompleteGame && !canReveal ?
+            canCompleteGame && !canReveal && !canCloseGame ?
               (
-                <Button
-                  color="primary"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    completeGame(game.id);
-                  }}>
-                  Complete the game
-                </Button>
+                <div>
+                  <p className="text-primary">
+                    Game might be completed.
+                  </p>
+                  <Button
+                    color="primary"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      completeGame(game.id);
+                    }}>
+                    Complete
+                  </Button>
+                </div>
+              ): ''
+          }
+          {
+            canCloseGame ?
+              (
+                <div>
+                  <Button
+                    color="warning"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      closeGame(game.id);
+                    }}>
+                    Close
+                  </Button>
+                </div>
               ): ''
           }
         </Form>
@@ -206,6 +252,7 @@ GameActionsComponent.propTypes = {
   commitNumber: PropTypes.func.isRequired,
   revealNumber: PropTypes.func.isRequired,
   completeGame: PropTypes.func.isRequired,
+  closeGame: PropTypes.func.isRequired,
   getReward: PropTypes.func.isRequired
 };
 
@@ -223,6 +270,7 @@ const mapDispatchToProps = dispatch => ({
   commitNumber: game => dispatch(commitNumber(game)),
   revealNumber: gameId => dispatch(revealNumber(gameId)),
   completeGame: gameId => dispatch(completeGame(gameId)),
+  closeGame: gameId => dispatch(closeGame(gameId)),
   getReward: gameId => dispatch(getReward(gameId))
 });
 

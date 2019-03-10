@@ -34,33 +34,42 @@ const GameCardComponent = ({ game, blockNumber }) => {
     <div className="mb-4">
       <Card>
         <CardBody>
-          <CardTitle>
-            <strong>
-              Game {game.id}
-            </strong>
-          </CardTitle>
+          <header>
+            <h3>Game {game.id}</h3>
+          </header>
+
           <CardSubtitle>
-            {statusText}<br/>
-            {
-              game.ownerInvolved ? (
-                <span className="text-info">
-                  Owner involved
-                  <br/>
-                </span>
-              ) : ''
-            }
+            <strong>{statusText}</strong>
+            <p>
+              {game.ownerInvolved ? (
+                <span className="text-info">Owner involved</span>
+              ) : ''}
+            </p>
           </CardSubtitle>
-          <CardText>
-            Participants <i className="fa fa-users"/> {game.commitCounter}/{game.config.participantsNumber}<br/>
-            Winners <i className="fa fa-trophy"/> {game.config.winnersNumber}<br/>
-            Deadline <i className="fa fa-stopwatch"/> {game.deadline} block<br/>
-            Total win <i className="fab fa-ethereum"/>
-            {' ' + (
-              (game.deposit * game.config.participantsNumber) -
-              (game.deposit * game.config.winnersNumber)
-            )}<br/>
-            Deposit <i className="fab fa-ethereum"/> {game.deposit}<br/>
-          </CardText>
+
+          <ul className="list-unstyled">
+            <li>
+              Participants <i className="fa fa-users"/> {game.commitCounter}/{game.config.participantsNumber}
+            </li>
+            <li>
+              Winners <i className="fa fa-trophy"/> {game.config.winnersNumber}
+            </li>
+            <li>
+              Deposit <i className="fab fa-ethereum"/> {game.deposit}
+            </li>
+            <li>
+              Total win <i className="fab fa-ethereum"/>
+              {' ' + (
+                (game.deposit * game.config.participantsNumber) -
+                (game.deposit * game.config.winnersNumber)
+              )}
+            </li>
+            <li>
+              Deadline <i className="fa fa-stopwatch"/>
+              {' ' + (game.deadline - blockNumber)}
+            </li>
+          </ul>
+
           {actionButton}
         </CardBody>
       </Card>

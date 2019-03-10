@@ -39,10 +39,9 @@ const GameDetailsComponent = ({ game, blockNumber }) => (
             (
               (game.deposit * game.config.participantsNumber) -
               (game.deposit * game.config.winnersNumber)
-            ) /
-            game.config.winnersNumber + ' '
+            ) / game.config.winnersNumber + ' '
           }
-          ETH for each winner
+          ETH to each winner
         </small>
       </li>
       <li><hr/></li>

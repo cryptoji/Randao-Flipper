@@ -29,7 +29,7 @@ const GameStatus = (props) => {
       {
         // Check, is out game?
         (!completed && !closed) && (blockNumber > deadline) ? (
-            <strong className="text-success">The game is out</strong>
+            <strong className="text-warning">The game is out</strong>
         ) : ''
       }
       {

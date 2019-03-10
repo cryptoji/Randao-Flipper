@@ -18,11 +18,11 @@ import {
   initWeb3,
   fetchOwner,
   fetchBalance,
-  fetchNetworkInfo
+  fetchNetworkInfo,
+  listenNetworkInfo
 } from './actions/blockchain';
 import {
   fetchContractStatistics,
-  loadAccountGameData,
   loadConfigs,
   loadGames,
   loadGame
@@ -45,7 +45,7 @@ class AppComponent extends React.Component {
       loadGames,
       fetchNetworkInfo,
       fetchContractStatistics,
-      fecthAccountGameData
+      listenNetworkInfo
     } = this.props;
 
     await initWeb3();
@@ -66,8 +66,9 @@ class AppComponent extends React.Component {
     if (window.location.pathname.includes('/game/')) {
       const _gameId = window.location.pathname.match(/\/game\/(\d+)/)[1];
       await fetchGame(_gameId);
-      await fecthAccountGameData(_gameId);
     }
+
+    await listenNetworkInfo();
   }
 
   render() {
@@ -113,16 +114,20 @@ class AppComponent extends React.Component {
 AppComponent.propTypes = {
   // Props
   appIsReady: PropTypes.bool,
+  web3: PropTypes.object,
   // Actions
   initWeb3: PropTypes.func.isRequired,
   initAccounts: PropTypes.func.isRequired,
   initContract: PropTypes.func.isRequired,
   fetchOwner: PropTypes.func.isRequired,
   fetchBalance: PropTypes.func.isRequired,
-  fetchNetworkInfo: PropTypes.func.isRequired
+  fetchNetworkInfo: PropTypes.func.isRequired,
+  fetchContractStatistics: PropTypes.func.isRequired,
+  listenNetworkInfo: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ({
+  web3: state.blockchain.web3,
   accounts: state.blockchain.accounts,
   appIsReady: !!(state.blockchain.accounts.length && state.blockchain.contract)
 });
@@ -138,7 +143,7 @@ const mapDispatchToProps = dispatch => ({
   fetchGame: gameId => dispatch(loadGame(gameId)),
   fetchNetworkInfo: () => dispatch(fetchNetworkInfo()),
   fetchContractStatistics: () => dispatch(fetchContractStatistics()),
-  fecthAccountGameData: gameId => dispatch(loadAccountGameData(gameId))
+  listenNetworkInfo: () => dispatch(listenNetworkInfo())
 });
 
 const App = connect(

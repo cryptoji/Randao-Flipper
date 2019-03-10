@@ -15,27 +15,32 @@ const GameStatus = (props) => {
   return (
     <p>
       {
+        // Check, is completed game?
         completed && (blockNumber > deadline) ? (
           <strong className="text-muted">Game completed</strong>
         ) : ''
       }
       {
+        // Check, is closed game?
         closed && (blockNumber > deadline) ? (
           <strong className="text-muted">Game closed</strong>
         ) : ''
       }
       {
+        // Check, is out game?
         (!completed && !closed) && (blockNumber > deadline) ? (
             <strong className="text-success">The game is out</strong>
         ) : ''
       }
       {
+        // Check, is waiting participants?
         (!completed && !closed) && (blockNumber < deadline) &&
         (commitCounter < config.participantsNumber) ? (
           <strong className="text-success">Waiting participants</strong>
         ) : ''
       }
       {
+        // Check, are numbers revealing?
         (!completed && !closed) && (blockNumber < deadline) &&
         (commitCounter === config.participantsNumber) &&
         (revealCounter < config.participantsNumber) ? (

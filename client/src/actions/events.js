@@ -73,8 +73,6 @@ export const handleRewardSent = (event, updateLists) => {
   };
 };
 
-
-
 export const handleEvent = (_event, updateLists = false) => {
   return async(dispatch) => {
     const type = _event.event;
@@ -103,6 +101,32 @@ export const handleEvent = (_event, updateLists = false) => {
         break;
       default:
         return;
+    }
+  };
+};
+
+export const subscribeEvents = (getPastEvents = true) => {
+  return async(dispatch, state) => {
+    const { web3, contract } = state().blockchain;
+    try {
+      const currentBlock = await web3.eth.getBlockNumber();
+
+      if (getPastEvents) {
+        contract.getPastEvents('allEvents', {
+          // Events from last 100 blocks
+          fromBlock: currentBlock > 100 ? currentBlock - 99 : 0,
+          toBlock: 'latest'
+        }).then((events) => {
+          events.forEach(e => dispatch(handleEvent(e)));
+        });
+      }
+
+      contract.events.allEvents()
+        .on('data', e => dispatch(handleEvent(e, true)))
+        .on('changed', console.log)
+        .on('error', console.error);
+    } catch (e) {
+      console.error(e);
     }
   };
 };

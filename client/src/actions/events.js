@@ -63,8 +63,12 @@ export const handleGameCompleted = (event, updateLists) => {
   };
 };
 
-export const handleRewardSent = (event) => {
+export const handleRewardSent = (event, updateLists) => {
   return async(dispatch) => {
+    if (updateLists) {
+      await dispatch(loadGame(event.data.gameId));
+    }
+
     await dispatch(fetchConfigCreatedEvent(event));
   };
 };
@@ -95,7 +99,7 @@ export const handleEvent = (_event, updateLists = false) => {
         dispatch(handleGameCompleted(event, updateLists));
         break;
       case 'RewardSent':
-        dispatch(handleRewardSent(event));
+        dispatch(handleRewardSent(event, updateLists));
         break;
       default:
         return;

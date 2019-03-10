@@ -52,6 +52,11 @@ const GameActionsComponent = (props) => {
   ) && (!canCommit && !canReveal && commited && revealed);
 
   const addressIsWinner = game.winners.find(winner => winner === account);
+  const statusEl = (
+    <GameStatus
+      blockNumber={blockNumber}
+      game={game}/>
+  );
 
   if (game.completed) {
     if (rewarded) {
@@ -80,26 +85,28 @@ const GameActionsComponent = (props) => {
         </div>
       ) :
       (
-        <p className="text-muted">
-          The game is completed. But you don't win.{' '}
-          Try your luck in another game session!
-        </p>
+        <div>
+          <p className="text-muted">
+            The game is completed. But you don't win.{' '}
+            Try your luck in another game session!
+          </p>
+        </div>
       );
   }
 
   if (game.closed) {
     return (
-      <p className="text-danger">
-        The game is closed. You can get back your deposit.
-      </p>
+      <div>
+        <p className="text-danger">
+          The game is closed. You can get back your deposit.
+        </p>
+      </div>
     );
   }
 
   return (
     <div>
-      <GameStatus
-        blockNumber={blockNumber}
-        game={game}/>
+      {statusEl}
 
       {
         canCommit && !commited ?

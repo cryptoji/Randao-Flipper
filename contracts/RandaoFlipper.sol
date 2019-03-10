@@ -347,14 +347,20 @@ contract RandaoFlipper is Ownable {
     GameParticipant storage participant = game._participants[msg.sender];
 
     require(game.completed || game.closed, "Game is not completed or closed");
-    require(game._winners[msg.sender], "You address is not in winners");
+
+    if (!game.closed) {
+      require(game._winners[msg.sender], "You address is not in winners");
+    }
+
     require(!participant.rewarded, "You are already rewarded");
 
     // Send reward
     uint prizePool = (game.deposit * game.participants.length);
+
     if(game.ownerInvolved) { prizePool = (game.deposit * (game.participants.length - 1)); }
 
     uint reward = (prizePool / game.winners.length);
+
     if(game.closed) {
       reward = game.deposit;
     } else {

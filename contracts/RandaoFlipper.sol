@@ -346,13 +346,9 @@ contract RandaoFlipper is Ownable {
     GameSession storage game = GameSessions[gameId];
     GameParticipant storage participant = game._participants[msg.sender];
 
-    require(game.completed || game.closed, "Game is not completed or closed");
-
-    if (!game.closed) {
-      require(game._winners[msg.sender], "You address is not in winners");
-    }
-
+    require(game.completed, "Game is not completed");
     require(!participant.rewarded, "You are already rewarded");
+    require(game._winners[msg.sender], "You address is not in winners");
 
     // Send reward
     uint prizePool = (game.deposit * game.participants.length);
@@ -377,5 +373,22 @@ contract RandaoFlipper is Ownable {
     totalFund = totalFund + reward;
 
     emit RewardSent(gameId, msg.sender, reward);
+  }
+
+  event DepositGetBack(uint gameId, address receiver, uint deposit);
+
+  function getBackDeposit(uint gameId) external {
+    GameSession storage game = GameSessions[gameId];
+    GameParticipant storage participant = game._participants[msg.sender];
+
+    require(game.closed, "Game is not closed");
+    require(!participant.rewarded, "You are already rewarded");
+    require(participant.commited, "You are not commit number in this game");
+
+    require(msg.sender.send(game.deposit), "The contract cannot send deposit back to receiver");
+
+    participant.rewarded = true;
+
+    emit DepositGetBack(gameId, msg.sender, game.deposit);
   }
 }

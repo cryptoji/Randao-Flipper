@@ -16,7 +16,8 @@ import {
   revealNumber,
   completeGame,
   closeGame,
-  getReward
+  getReward,
+  getBackDeposit
 } from '../../actions/games';
 import GameStatus from './Status';
 
@@ -31,6 +32,7 @@ const GameActionsComponent = (props) => {
     completeGame,
     closeGame,
     getReward,
+    getBackDeposit,
     handleCommitFieldChange,
     handleRevealFieldChange,
     blockNumber
@@ -56,7 +58,7 @@ const GameActionsComponent = (props) => {
   // Can close game validator
   const canCloseGame = (
     (!game.closed && !game.completed) &&
-    (blockNumber > game.deadline) &&
+    (blockNumber >= game.deadline) &&
     (revealsCounter === 0)
   );
 
@@ -111,10 +113,10 @@ const GameActionsComponent = (props) => {
         </p>
 
         {
-          commited ? (
+          commited && !rewarded ? (
             <Button
               color="warning"
-              onClick={(_) => getReward(game.id)}>
+              onClick={(_) => getBackDeposit(game.id)}>
               Get back deposit
             </Button>
           ) : ''
@@ -221,7 +223,7 @@ const GameActionsComponent = (props) => {
               ): ''
           }
           {
-            canCloseGame ?
+            canCloseGame && commited ?
               (
                 <div>
                   <Button
@@ -253,6 +255,7 @@ GameActionsComponent.propTypes = {
   revealNumber: PropTypes.func.isRequired,
   completeGame: PropTypes.func.isRequired,
   closeGame: PropTypes.func.isRequired,
+  getBackDeposit: PropTypes.func.isRequired,
   getReward: PropTypes.func.isRequired
 };
 
@@ -271,6 +274,7 @@ const mapDispatchToProps = dispatch => ({
   revealNumber: gameId => dispatch(revealNumber(gameId)),
   completeGame: gameId => dispatch(completeGame(gameId)),
   closeGame: gameId => dispatch(closeGame(gameId)),
+  getBackDeposit: gameId => dispatch(getBackDeposit(gameId)),
   getReward: gameId => dispatch(getReward(gameId))
 });
 

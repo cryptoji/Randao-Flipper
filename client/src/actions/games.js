@@ -282,3 +282,21 @@ export const getReward = (gameId) => {
     }
   }
 }
+
+/*
+ * Get deposit back
+ */
+export const getBackDeposit = (gameId) => {
+  return async(dispatch, state) => {
+    const { accounts, contract } = state().blockchain;
+
+    try {
+      await contract.methods.getBackDeposit(gameId).send({ from: accounts[0] });
+      await dispatch(fetchBalance());
+      await dispatch(fetchContractStatistics());
+      alert('You got deposit back');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}

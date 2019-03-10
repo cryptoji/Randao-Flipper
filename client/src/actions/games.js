@@ -59,7 +59,7 @@ export const loadGames = () => {
     try {
       const { gamesCount } = await contract.methods.getGamesCount().call();
 
-      for(let i = 0; i < gamesCount; i++) {
+      for(let i = gamesCount-1; i >= 0; i--) {
         await dispatch(loadGame(i));
       }
     } catch (e) {
@@ -204,6 +204,23 @@ export const completeGame = (gameId) => {
 
     try {
       await contract.methods.completeGame(gameId).send({ from: accounts[0] });
+      await dispatch(loadGame(gameId));
+      await dispatch(fetchContractStatistics());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+};
+
+/*
+ * Close game action
+ */
+export const closeGame = (gameId) => {
+  return async(dispatch, state) => {
+    const { accounts, contract } = state().blockchain;
+
+    try {
+      await contract.methods.closeGame(gameId).send({ from: accounts[0] });
       await dispatch(loadGame(gameId));
       await dispatch(fetchContractStatistics());
     } catch (e) {

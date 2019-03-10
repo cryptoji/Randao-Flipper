@@ -23,10 +23,12 @@ class GamePage extends React.Component {
           game ?
             (
               <Row>
-                <Col className="mb-3" md="6" lg="4" xl="3">
+                <Col className="mb-3" md="6" lg="4" >
                   <GameDetails game={game}/>
                 </Col>
-                <Col md="6" lg="4" xl="5">
+                <Col md="6" lg="8">
+                  <GameActions game={game}/>
+                  <hr/>
                   {
                     game.completed ?
                       (
@@ -38,9 +40,6 @@ class GamePage extends React.Component {
                   <GameAddresses
                     title="Participants"
                     addresses={game.participants}/>
-                </Col>
-                <Col className="" md="12" lg="4">
-                  <GameActions game={game}/>
                 </Col>
               </Row>
             )

@@ -49,7 +49,11 @@ class HeaderContainer extends React.Component {
                 <NavLink>Tutorial</NavLink>
               </NavItem>
               <NavItem>
-                <NavLink>White paper</NavLink>
+                <NavLink
+                  target="blank"
+                  href="https://docs.google.com/document/d/1D0AhhxBUbztEDEorN_ol2-Gbk1wSesnEPdI40t8jg_w/edit?usp=sharing">
+                  White paper
+                </NavLink>
               </NavItem>
               {
                 this.props.account ?

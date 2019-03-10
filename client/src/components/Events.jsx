@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import { getShortAddress } from '../utils';
 import { handleEvent } from '../actions/events';
 
-
 class EventsList extends React.Component {
   constructor(props) {
     super(props);
@@ -148,7 +147,6 @@ EventsList.propTypes = {
   contract: PropTypes.object.isRequired,
   events: PropTypes.array.isRequired,
   gameConfigs: PropTypes.array.isRequired,
-
   handleEvent: PropTypes.func.isRequired
 };
 

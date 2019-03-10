@@ -16,6 +16,7 @@ import {
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom';
 import { getShortAddress } from '../utils/index';
+import logo from '../logo.png';
 
 class HeaderContainer extends React.Component {
   constructor(props) {
@@ -33,9 +34,9 @@ class HeaderContainer extends React.Component {
   render() {
     return (
       <div>
-        <Navbar color="dark" dark expand="md">
+        <Navbar color="faded" light expand="md">
           <Link to={`/`} className="navbar-brand">
-            Randao Flipper
+            <img width="220px" height="56px" src={logo}/>
           </Link>
 
           <NavbarToggler onClick={this.toggle}/>
@@ -43,10 +44,14 @@ class HeaderContainer extends React.Component {
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="ml-auto" navbar>
               <NavItem>
-                <NavLink>Blog</NavLink>
+                <Link className="nav-link" to={'/'}>
+                  Games
+                </Link>
               </NavItem>
               <NavItem>
-                <NavLink>Tutorial</NavLink>
+                <Link className="nav-link" to={'/tutorial'}>
+                  Tutorial
+                </Link>
               </NavItem>
               <NavItem>
                 <NavLink

@@ -62,11 +62,11 @@ const GameCardComponent = ({ game, blockNumber }) => {
               {' ' + (
                 (game.deposit * game.config.participantsNumber) -
                 (game.deposit * game.config.winnersNumber)
-              )}
+              ).toFixed(2)}
             </li>
             <li>
               Deadline <i className="fa fa-stopwatch"/>
-              {' ' + (game.deadline - blockNumber)}
+              {' ' + (game.deadline - blockNumber) + ' blocks'}
             </li>
           </ul>
 

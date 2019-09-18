@@ -21,7 +21,7 @@ class GamesList extends React.Component {
                   this.props.games
                     .sort((a, b) => a.id - b.id)
                     .map((game, index) => (
-                      <Col key={index} xs="12" sm="6" lg="">
+                      <Col key={index} xs="12" sm="6" lg="4">
                         <GameCard game={game}/>
                       </Col>
                     ))

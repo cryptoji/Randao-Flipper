@@ -12,7 +12,7 @@ class GamesList extends React.Component {
   render() {
     return (
       <section>
-        <h5>Games</h5>
+        <h1>Games</h1>
         {
           this.props.games.length ?
             (
@@ -29,7 +29,11 @@ class GamesList extends React.Component {
                 }
               </Row>
             ) :
-            <p className="text-muted">Not created any games yet</p>
+            (
+              this.props.isLoading ?
+                <p className="text-muted">Loading games...</p> :
+                <p className="text-muted">Not any created games yet</p>
+            )
         }
       </section>
     );
@@ -37,11 +41,13 @@ class GamesList extends React.Component {
 }
 
 GamesList.propTypes = {
-  games: PropTypes.array.isRequired
+  games: PropTypes.array.isRequired,
+  isLoading: PropTypes.bool.isRequired
 };
 
 const mapStateToProps = state => ({
-  games: state.games.data
+  games: state.games.data,
+  isLoading: state.games.gamesIsLoading
 });
 
 const Games = connect(

@@ -114,7 +114,7 @@ export const subscribeEvents = (getPastEvents = true) => {
       if (getPastEvents) {
         contract.getPastEvents('allEvents', {
           // Events from last 100 blocks
-          fromBlock: currentBlock > 100 ? currentBlock - 99 : 0,
+          fromBlock: 0,
           toBlock: 'latest'
         }).then((events) => {
           events.forEach(e => dispatch(handleEvent(e)));

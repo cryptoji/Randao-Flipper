@@ -7,7 +7,7 @@ export const FETCH_GAME_CONFIG = 'FETCH_GAME_CONFIG';
 export const SET_OWNER_REWARD = 'SET_OWNER_REWARD';
 export const SET_TOTAL_WINNERS = 'SET_TOTAL_WINNERS';
 export const SET_TOTAL_FUND = 'SET_TOTAL_FUND';
-
+export const TOGGLE_GAMES_LOADING = 'TOGGLE_GAMES_LOADING';
 
 export const fetchGame = (payload) => ({
   type: FETCH_GAME,
@@ -23,7 +23,8 @@ export const loadAccountGameData = (gameId) => {
   return async(dispatch, state) => {
     const { contract, accounts } = state().blockchain;
     return await contract.methods.getGameParticipant(
-      gameId, accounts[0]
+      gameId,
+      accounts[0]
     ).call();
   };
 };
@@ -34,7 +35,7 @@ export const loadGame = (gameId) => {
     const { configs } = state().games;
 
     try {
-      const game = await contract.methods.getGame(gameId).call();
+      const game = await contract.methods.getGame(parseInt(gameId, 10)).call();
       const accountData = await dispatch(loadAccountGameData(gameId));
       const config = configs.find((_, i) => i+'' === game.configId);
 
@@ -56,11 +57,24 @@ export const loadGame = (gameId) => {
 export const loadGames = () => {
   return async(dispatch, state) => {
     const { contract } = state().blockchain;
+
     try {
-      const { gamesCount } = await contract.methods.getGamesCount().call();
+      const gamesCount = await contract.methods.getGamesCount().call();
+
+      if (!gamesCount || gamesCount === 0) {
+        dispatch({
+          type: TOGGLE_GAMES_LOADING
+        });
+      }
 
       for(let i = gamesCount-1; i >= 0; i--) {
         await dispatch(loadGame(i));
+
+        if (i === gamesCount-1) {
+          dispatch({
+            type: TOGGLE_GAMES_LOADING
+          });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -74,7 +88,6 @@ export const loadConfig = (configId) => {
 
     try {
       const config = await contract.methods.GameConfigurations(configId).call();
-
       dispatch(
         fetchGameConfig({
           ...config,
@@ -92,7 +105,7 @@ export const loadConfigs = () => {
     const { contract } = state().blockchain;
 
     try {
-      const { configurationsCount } = await contract.methods.getConfigurationsCount().call();
+      const configurationsCount = await contract.methods.getConfigurationsCount().call();
 
       for(let i = 0; i < configurationsCount; i++) {
         await dispatch(loadConfig(i));

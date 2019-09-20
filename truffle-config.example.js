@@ -1,7 +1,6 @@
 const path = require("path");
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
-// ROPSTEN MNEMONIC
 const mnemonic = "..."; // 12 word mnemonic
 
 module.exports = {

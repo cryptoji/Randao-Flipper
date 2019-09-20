@@ -3,9 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import {
   Card,
-  CardText,
   CardBody,
-  CardTitle,
   CardSubtitle,
   Button
 } from 'reactstrap';

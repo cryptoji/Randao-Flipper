@@ -51,7 +51,7 @@ export const initContract = () => {
       );
 
       const balance = await web3.eth.getBalance(contract.options.address);
-      console.log(balance)
+      console.log(`Contract ETH balance: ${balance}`)
 
       dispatch(setContract(contract));
     } catch (e) {

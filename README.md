@@ -1,4 +1,8 @@
 # Ether Flipper
+<p>
+  <span style="color:red"><em>Please don't use it in production. Because it's not completed and only fan experiment :)</em></span>
+</p>
+
 Smart contract for honest lotteries with a transparent selection of random winners
 
 - [White Papper (Eng)](#)
